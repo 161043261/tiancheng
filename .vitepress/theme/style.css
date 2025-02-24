@@ -1,0 +1,14 @@
+:root {
+  --vue-green: #42b883;
+  --react-blue: #087ea4;
+  --vp-font-family-base: "Cascadia Code", "Menlo", "DejaVu Sans Mono",
+    "YouYuan", "PingFang SC", "Microsoft YaHei", monospace !important;
+  --vp-font-family-mono: "Cascadia Code", "Menlo", "DejaVu Sans Mono",
+    "YouYuan", "PingFang SC", "Microsoft YaHei", monospace !important;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    180deg,
+    var(--vue-green),
+    var(--react-blue)
+  );
+}
