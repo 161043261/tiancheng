@@ -67,6 +67,16 @@ esc        # 切换到命令模式
 
 ## Ubuntu
 
+```bash
+ip a
+# ip route | grep 'default' | awk '{print $3}'
+# wsl 中使用主机代理
+proxy=$(ip route | grep 'default' | awk '{print $3}'):7890
+export HTTP_PROXY=http://$proxy
+export HTTPS_PROXY=http://$proxy
+export ALL_PROXY=socks5://$proxy
+```
+
 ````shell
 wsl --list [--online]
 wsl --install -d Ubuntu

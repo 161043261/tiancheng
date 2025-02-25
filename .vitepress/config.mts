@@ -42,4 +42,43 @@ export default defineConfig({
       { icon: "youtube", link: "https://www.youtube.com/@yukino0228" },
     ],
   },
+  transformHead({ assets }) {
+    const IosevkaRegular = assets.find(
+      (file) => /Iosevka-Regular\.\w+\.woff2/,
+    )!;
+    const IosevkaBold = assets.find((file) => /Iosevka-Bold\.\w+\.woff2/)!;
+    const TangYuan = assets.find((file) => /TangYuan\.\w+\.woff2/)!;
+    return [
+      [
+        "link",
+        {
+          rel: "preload",
+          href: IosevkaRegular,
+          as: "font",
+          type: "font/woff2",
+          crossorigin: "",
+        },
+      ],
+      [
+        "link",
+        {
+          rel: "preload",
+          href: IosevkaBold,
+          as: "font",
+          type: "font/woff2",
+          crossorigin: "",
+        },
+      ],
+      [
+        "link",
+        {
+          rel: "preload",
+          href: TangYuan,
+          as: "font",
+          type: "font/woff2",
+          crossorigin: "",
+        },
+      ],
+    ];
+  },
 });
