@@ -47,7 +47,6 @@ export default defineConfig({
       (file) => /Iosevka-Regular\.\w+\.woff2/,
     )!;
     const IosevkaBold = assets.find((file) => /Iosevka-Bold\.\w+\.woff2/)!;
-    const TangYuan = assets.find((file) => /TangYuan\.\w+\.woff2/)!;
     return [
       [
         "link",
@@ -68,17 +67,7 @@ export default defineConfig({
           type: "font/woff2",
           crossorigin: "",
         },
-      ],
-      [
-        "link",
-        {
-          rel: "preload",
-          href: TangYuan,
-          as: "font",
-          type: "font/woff2",
-          crossorigin: "",
-        },
-      ],
+      ]
     ];
   },
 });

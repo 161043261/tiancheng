@@ -4,6 +4,7 @@
     "genshin",
     "gsap",
     "hashchange",
+    "Iosevka",
     "MVVM",
     "popstate",
     "Tiancheng",
@@ -15,5 +16,5 @@
     "vuejs",
     "yukino"
   ],
-  "editor.fontFamily": "Iosevka, ChillRoundM"
+  "editor.fontFamily": "Iosevka, YouYuan, Yuanti SC"
 }

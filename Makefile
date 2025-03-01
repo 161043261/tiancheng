@@ -7,7 +7,6 @@ build:
 
 site: build
 	scp -r ./.vitepress/dist root@121.41.121.204:~/dist && \
-	cp -r ./.github ./.vitepress/dist && \
 	cp ./README.md ./.vitepress/dist && \
 	cd ./.vitepress/dist && \
 	git init && \
