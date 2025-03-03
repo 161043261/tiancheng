@@ -26,7 +26,7 @@ hero:
 
 features:
   - title: 前端
-    details: HTML, CSS, Sass, Tailwind, JS, TS, Vue, Pinia, React, Webpack, Vite, Electron
+    details: HTML, CSS, Sass, TailwindCSS, JS, TS, Vue, Pinia, React, Webpack, Vite, Electron
   - title: 后端
     details: Node.js, Express, Nest.js, Redis, MongoDB, MySQL, Go, GORM, Gin
   - title: 基础

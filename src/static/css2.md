@@ -49,10 +49,10 @@
 ## BFC, Block Formatting Contexts
 
 计算 bfc 高度时, 浮动元素也参与计算
-bfc 作为隔离的独立容器, 可以清除浮动, 参考 [bfc.html](./bfc.html); 可以防止与浮动元素重叠, 参考 [bfc2.html](./bfc2.html)
+bfc 作为隔离的独立容器, 可以清除浮动; 可以防止与浮动元素重叠
 
 1. 计算 bfc 的高度时, 浮动元素也会参与计算
-2. 同一个 bfc 中的元素的垂直 margin 会合并 [bfc3.html](./bfc3.html)
+2. 同一个 bfc 中的元素的垂直 margin 会合并
 3. bfc 元素不会合并子元素的垂直 margin
 4. 浮动盒不会和 bfc 重叠
 
