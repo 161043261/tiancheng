@@ -323,14 +323,14 @@ ul > li[class="obj1"] {
 
 > 块元素 (block boxes)
 
-1. 块盒子独占一行, 会换行
+1. 块盒子独占一行
 2. 默认宽度: 撑满父元素
 3. 默认高度: 由内容撑开
 4. 可以设置宽高
 
 > 行内元素 (inline boxes)
 
-1. 行内盒子不独占一行, 不会换行
+1. 行内盒子不独占一行, 溢出时换行
 2. 默认宽度: 由内容撑开
 3. 默认高度: 由内容撑开
 4. 不能设置宽高
@@ -561,7 +561,7 @@ padding: 10px 20px 30px 40px; /* 上 10px, 右 20px, 下 30px, 左 40px */
   - 不脱离文档流
   - 不能同时设置 left 和 right, 不能同时设置 top 和 bottom
   - 不推荐设置 margin
-  - - 不推荐同时设置浮动和相对定位
+  - 不推荐同时设置浮动和相对定位
 
 ### 绝对定位
 
@@ -1195,7 +1195,7 @@ transform: 转换属性, 设置元素的位置
   - steps(n), step(n, start), step(n, end): 分步过渡
   - cubic-bezier(): 贝塞尔曲线
 
-**符合属性 transition**: 先写 transition-duration, 后写 transition-delay, 其他没有顺序要求 \*/
+**符合属性 transition**: 先写 transition-duration, 后写 transition-delay, 其他没有顺序要求
 
 ### 动画 animation
 

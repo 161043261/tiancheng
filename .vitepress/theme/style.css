@@ -16,23 +16,14 @@
   src: url("../../src/assets/Iosevka-Bold.woff2") format("woff2");
 }
 
-@font-face {
-  font-family: "TangYuan Web";
-  font-display: swap;
-  font-weight: 400;
-  font-stretch: normal;
-  font-style: normal;
-  src: url("../../src/assets/TangYuan.woff2") format("woff2");
-}
-
 :root {
   --vue-green: rgba(66, 184, 131, 0.5);
   --react-blue: rgba(8, 126, 164, 0.5);
   --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "TangYuan Web", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
   --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "TangYuan Web", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: -webkit-linear-gradient(

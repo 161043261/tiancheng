@@ -19,6 +19,7 @@ export default {
       items: [
         { text: "HTML", link: "/static/html" },
         { text: "CSS", link: "/static/css" },
+        { text: "CSS 2", link: "/static/css2" },
         { text: "Sass", link: "/static/sass" },
       ],
     },
