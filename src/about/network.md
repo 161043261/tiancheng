@@ -392,9 +392,9 @@ window.addEventListener("offline", () => {
 
 // 使用 navigator.onLine 属性
 if (navigator.onLine) {
-  console.log("Online");
+  console.log("online");
 } else {
-  console.log("Offline");
+  console.log("offline");
 }
 ```
 

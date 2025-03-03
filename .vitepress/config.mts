@@ -44,9 +44,9 @@ export default defineConfig({
   },
   transformHead({ assets }) {
     const IosevkaRegular = assets.find(
-      (file) => /Iosevka-Regular\.\w+\.woff2/,
+      (_file) => /Iosevka-Regular\.\w+\.woff2/,
     )!;
-    const IosevkaBold = assets.find((file) => /Iosevka-Bold\.\w+\.woff2/)!;
+    const IosevkaBold = assets.find((_file) => /Iosevka-Bold\.\w+\.woff2/)!;
     return [
       [
         "link",
