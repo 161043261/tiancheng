@@ -375,7 +375,7 @@ align-self 属性: 单独指定某个伸缩项目的侧轴对齐方式, 默认 a
 .wrapper {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  grid-gap: 10px 20px;
+  gap: 10px 20px;
   grid-auto-rows: 50px;
 }
 ```

@@ -1,11 +1,13 @@
 {
   "cSpell.words": [
     "beforeunload",
+    "bilibili",
     "CSSOM",
+    "Iosevka",
     "omnibox",
     "QUIC",
     "tiancheng",
     "Yuanti"
   ],
-  "editor.fontFamily": "Iosevka, YouYuan, Yuanti SC"
+  "editor.fontFamily": "Geist Mono, Iosevka, YouYuan, Yuanti SC"
 }

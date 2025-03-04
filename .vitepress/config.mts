@@ -26,12 +26,10 @@ export default defineConfig({
       { text: "Homepage", link: "/" },
       { text: "2025", link: "/about/year/25" },
       { text: "Vue", link: "/framework/vue" },
-      { text: "React", link: "/framework/react" },
     ],
     sidebar: sidebar,
     socialLinks: [
       { icon: "github", link: "https://github.com/161043261" },
-
       { icon: "bilibili", link: "https://b23.tv/vCth43f" },
       { icon: "qq", link: "https://qm.qq.com/q/YDORema7As" },
       {
