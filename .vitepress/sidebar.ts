@@ -9,6 +9,7 @@ export default {
         { text: "Linux", link: "/about/linux" },
         { text: "MySQL", link: "/about/mysql" },
         { text: "Network", link: "/about/network" },
+        { text: "Network 2", link: "/about/network2" },
         { text: "VScode", link: "/about/vscode" },
       ],
     },

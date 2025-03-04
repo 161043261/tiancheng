@@ -1,21 +1,11 @@
 {
   "cSpell.words": [
     "beforeunload",
-    "bilibili",
-    "genshin",
-    "gsap",
-    "hashchange",
-    "Iosevka",
-    "MVVM",
-    "popstate",
-    "Tiancheng",
-    "unplugin",
-    "unref",
-    "unsub",
-    "unwatch",
-    "vnode",
-    "vuejs",
-    "yukino"
+    "CSSOM",
+    "omnibox",
+    "QUIC",
+    "tiancheng",
+    "Yuanti"
   ],
   "editor.fontFamily": "Iosevka, YouYuan, Yuanti SC"
 }
