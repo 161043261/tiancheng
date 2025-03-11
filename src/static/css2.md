@@ -239,23 +239,23 @@ IFC: **仅**包含 行内或行内块 的块级元素
 1. `flex: 0 1 auto` 默认值
    - flex-grow: 0 伸缩项目不能拉伸
    - flex-shrink: 1 伸缩项目可以压缩
-   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽高
+   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽度
 2. `flex: auto`, 等价于 `flex: 1 1 auto`
    - flex-grow: 1 伸缩项目可以拉伸
    - flex-shrink: 1 伸缩项目可以压缩
-   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽高
+   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽度
 3. `flex: none`, 等价于 `flex: 0 0 auto`
    - flex-grow: 0 伸缩项目不能拉伸
    - flex-shrink: 0 伸缩项目不能压缩
-   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽高
+   - flex-basis: auto 伸缩项目在主轴方向的初始长度 = 盒子宽度
 4. `flex: 1` 或 `flex: 0%`, 等价于 `flex: 1 1 0%`
    - flex-grow: 1 伸缩项目可以拉伸
    - flex-shrink: 1 伸缩项目可以压缩
-   - flex-basis: 0% 伸缩项目在主轴方向的初始长度为 0 (盒子宽高失效)
+   - flex-basis: 0% 伸缩项目在主轴方向的初始长度为 0 (盒子宽度失效)
 5. `flex: 24px`, 等价于 `flex: 1 1 24px`
    - flex-grow: 1 伸缩项目可以拉伸
    - flex-shrink: 1 伸缩项目可以压缩
-   - flex-basis: 24px 伸缩项目在主轴方向的初始长度为 24px (盒子宽高失效)
+   - flex-basis: 24px 伸缩项目在主轴方向的初始长度为 24px (盒子宽度失效)
 
 align-self 属性: 单独指定某个伸缩项目的侧轴对齐方式, 默认 auto
 

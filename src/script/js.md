@@ -20,6 +20,16 @@ Web Workers 有以下限制
 const worker = new Worker("./concurrent.js");
 // 主线程向 worker 子线程发送消息
 worker.postMessage("ping" /** any */);
+
+// 主线程监听 worker 子线程的错误
+worker.onerror = function (err) {
+  console.log(err.filename, err.lineno, err.message);
+};
+// 等价于
+worker.addEventListener("error", function (err) {
+  console.log(err.filename, err.lineno, err.message);
+});
+
 // 主线程监听 worker 子线程返回的消息
 worker.onmessage = function (ev) {
   // 主线程收到 worker 子线程返回的计算密集型任务的结果
@@ -27,15 +37,6 @@ worker.onmessage = function (ev) {
   // 主线程终止子线程
   worker.terminate();
 };
-
-// 主线程监听 worker 子线程的错误
-worker.onerror(function (err) {
-  console.log(err.filename, err.lineno, err.message);
-});
-// 等价于
-worker.addEventListener("error", function (err) {
-  console.log(err.filename, err.lineno, err.message);
-});
 ```
 
 ```js [worker 子线程]
@@ -64,7 +65,7 @@ worker.postMessage(arr); // 发送深拷贝后的字节数组
 worker.postMessage(arr, [arr]); // 转移所有权
 
 // worker 线程
-this.onmessage = function (ev) {
+/* this. */ onmessage = function (ev) {
   console.log(ev.data);
 };
 ```

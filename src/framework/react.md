@@ -475,6 +475,16 @@ export const UseIdDemo: React.FC = () => {
 };
 ```
 
+## api: createPortal
+
+将一个组件传送到指定的 DOM 节点上, 成为指定 DOM 节点的直接子元素, 类似 Vue 的 Teleport
+
+### 入参
+
+- children: 被传送的组件
+- domNode: 目标 DOM 节点, 一般是 document.body
+- key: 可选参数, 用于唯一标识被传送的组件
+
 ## 使用 props 进行组件通信
 
 ```js
@@ -664,3 +674,134 @@ export function App() {
 ```
 
 :::
+
+## styled (CSS-IN-JS)
+
+```bash
+pnpm install styled-components -D
+```
+
+::: code-group
+
+```tsx [CssInJs.tsx]
+import { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import styled, { createGlobalStyle, keyframes } from "styled-components";
+
+const Button = styled.button<{ success?: boolean }>`
+  ${(props) =>
+    props.success ? "background: lightblue" : "background: lightgreen"};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  height: 30px;
+`;
+
+// styled 继承
+const ErrorButton = styled(Button)`
+  background: lightpink;
+`;
+
+const LinkButton = styled(Button)`
+  text-decoration: underline;
+  background: transparent;
+`;
+
+// styled 属性
+const Input = styled.input.attrs({
+  type: "number",
+  defaultValue: 1,
+})`
+  margin-top: 10px;
+`;
+
+const Input2 = styled.input.attrs<{ defaultValue: number }>((props) => {
+  return {
+    type: "number",
+    defaultValue: props.defaultValue,
+  };
+})`
+  margin-top: 10px;
+`;
+
+// styled 全局属性
+const GlobalStyle = createGlobalStyle`
+* {
+  padding: 0;
+  margin: 0;
+}
+:root {
+  background: azure;
+}
+`;
+
+// styled 动画
+const xMove = keyframes`
+0% {
+  transform: translateX(0);
+}
+50% {
+  transform: translateX(300px);
+}
+100% {
+  transform: translateX(0);
+}
+`;
+const Box = styled.div`
+  position: fixed;
+  left: 10%;
+  top: 10%;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background: lightpink;
+  animation: ${xMove} 3s ease infinite;
+`;
+
+export function CssInJS(props: { children?: ReactNode }) {
+  return (
+    <main style={{ display: "flex", flexDirection: "column" }}>
+      <Button>{props.children ?? "默认文本"}</Button>
+      <Button success>{props.children ?? "成功文本"}</Button>
+      <ErrorButton>{props.children ?? "失败文本"}</ErrorButton>
+      <LinkButton>{props.children ?? "链接文本"}</LinkButton>
+      <Input defaultValue={30}></Input>
+      <Input2 defaultValue={30}></Input2>
+      {/* 注册全局样式 */}
+      <GlobalStyle></GlobalStyle>
+      {createPortal(<Box></Box>, document.body)}
+    </main>
+  );
+}
+```
+
+```tsx [App.tsx]
+import { CssInJs } from "./CssInJs";
+
+<CssInJs>这是 styled</CssInJs>;
+```
+
+## styled 原理: ES6 模板字符串
+
+```ts
+const twArg = "slate";
+const twArg2 = 500;
+// const templateStr = `text-${twArg}-${twArg2}`
+
+// parser: 模板字符串的解析函数
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parser(
+  templateStrArr: TemplateStringsArray,
+  ...insertedValues: any[]
+) {
+  // templateStrArr: ['text-', '-', '']
+  // insertedValues: ['slate', 500]
+  console.log(templateStrArr, insertedValues);
+  return `color: #62748e;`;
+}
+const parsedStr = parser`text-${twArg}-${twArg2}`;
+console.log(parsedStr); // color: #62748e
+```

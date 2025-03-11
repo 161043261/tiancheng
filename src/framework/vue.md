@@ -1595,6 +1595,8 @@ const injectedColor = inject<Ref<string>>(
 </template>
 ```
 
+:::
+
 ## 兄弟组件通信
 
 ### 方式 1: 通过父组件桥接
