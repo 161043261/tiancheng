@@ -454,10 +454,106 @@ Nuxt 内置了 PostCSS
 
 SSR 对 SEO 友好
 
-## 过渡效果
+## 过渡动画
 
 基于 Vue 的 `<Transition>`
 
-在 `nuxt.config.ts` 中开启页面过渡, 为所有的页面应用过渡效果
+### 页面过渡
 
-## 数据获取
+在 `nuxt.config.ts` 中开启页面过渡, 为所有 /pages/\* 页面应用过渡动画
+
+```ts
+export default defineNuxtConfig({
+  app: {
+    pageTransition: { name: "page", mode: "out-in" },
+  },
+});
+```
+
+编写页面过渡动画的样式
+
+::: code-group
+
+```vue [app.vue]
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>
+
+<style lang="css">
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.5s;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0; /** 完全透明  */
+  filter: blur(1rem); /** 页面模糊, 模糊半径 1rem, 1rem 通常是 16px  */
+}
+</style>
+```
+
+```vue [pages/index.vue]
+<template>
+  <div>
+    <h1>Index page</h1>
+    <NuxtLink to="/about">About page</NuxtLink>
+  </div>
+</template>
+```
+
+```vue [pages/about.vue]
+<template>
+  <div>
+    <h1>About page</h1>
+    <NuxtLink to="/">Index page</NuxtLink>
+  </div>
+</template>
+```
+
+:::
+
+### 布局过渡
+
+在 `nuxt.config.ts` 中开启布局过渡, 为所有 /layouts/\* 布局应用过渡动画
+
+```ts
+export default defineNuxtConfig({
+  app: {
+    layoutTransition: { name: "layout", mode: "out-in" },
+  },
+});
+```
+
+编写布局过渡动画的样式
+
+```vue
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>
+
+<style lang="css">
+.layout-enter-active,
+.layout-leave-active {
+  transition: all 0.5s;
+}
+
+.layout-enter-from,
+.layout-leave-to {
+  filter: grayscale(1);
+}
+</style>
+```
+
+使用 setPageLayout 函数动态更改布局
+
+> [!warning]
+>
+> 1. 只更改页面, 不更改布局: 触发页面过渡动画
+> 2. 只更改布局, 不更改页面: 触发布局过渡动画
+> 3. 布局打开/关闭 `definePageMeta({ layout: false })` 或 `setPageLayout(false)` 时, 不会触发布局过渡动画
+> 4. 同时更改页面和布局: 只会触发布局过渡动画
