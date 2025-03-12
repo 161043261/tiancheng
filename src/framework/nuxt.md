@@ -460,13 +460,11 @@ SSR 对 SEO 友好
 
 ### 页面过渡
 
-- 在 `nuxt.config.ts` 中开启页面过渡, 为所有 /pages/\* 页面应用过渡效果
-- 内置的过渡效果名 page, 应用于所有页面
+在 `nuxt.config.ts` 中开启页面过渡, 为所有页面应用过渡效果
 
 ```ts
 export default defineNuxtConfig({
   app: {
-    // 内置的过渡效果名 page, 应用于所有页面
     pageTransition: { name: "page", mode: "out-in" },
   },
 });
@@ -484,6 +482,7 @@ export default defineNuxtConfig({
 </template>
 
 <style lang="css">
+/* 前缀是 page */
 .page-enter-active,
 .page-leave-active {
   transition: all 0.5s;
@@ -517,8 +516,7 @@ export default defineNuxtConfig({
 
 :::
 
-> - 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
-> - 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
+可以通过 definePageMeta 宏函数指定 pageTransition 属性, 设置特定路由的页面过渡效果, 可以覆盖全局页面过渡效果
 
 ::: code-group
 
@@ -544,9 +542,10 @@ export default defineNuxtConfig({
 ```vue [pages/about.vue]
 <script setup lang="ts">
 definePageMeta({
-  // 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
+  // 可以通过 definePageMeta 宏函数指定 pageTransition 属性
+  // 设置特定路由的页面过渡效果, 可以覆盖全局页面过渡效果
   pageTransition: {
-    name: "rotate", // 该页面使用 rotate 页面过渡效果 (在 app.vue 中定义)
+    name: "rotate", // 该路由使用 rotate 页面过渡效果
   },
 });
 </script>
@@ -556,8 +555,7 @@ definePageMeta({
 
 ### 布局过渡
 
-- 在 `nuxt.config.ts` 中开启布局过渡, 为所有 /layouts/\* 布局应用过渡效果
-- 内置的过渡效果名 layout, 应用于所有布局
+在 `nuxt.config.ts` 中开启布局过渡, 为所有布局应用过渡效果
 
 ```ts
 export default defineNuxtConfig({
@@ -577,6 +575,7 @@ export default defineNuxtConfig({
 </template>
 
 <style lang="css">
+/* 前缀是 layout */
 .layout-enter-active,
 .layout-leave-active {
   transition: all 0.5s;
@@ -591,16 +590,16 @@ export default defineNuxtConfig({
 
 备注: 可以使用 setPageLayout 函数动态更改布局
 
-> - 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
-> - 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
+可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 设置特定路由的布局过渡效果, 可以覆盖全局布局过渡效果
 
 ```vue
 <script setup lang="ts">
 definePageMeta({
-  // 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
-  layout: "lightblue", // 该页面使用 lightblue 布局
+  // 可以通过 definePageMeta 宏函数指定 layoutTransition 属性
+  // 设置特定路由的布局过渡效果, 可以覆盖全局布局过渡效果
+  layout: "lightblue", // 该路由使用 lightblue 布局
   layoutTransition: {
-    name: "fade", // 该页面使用 fade 布局过渡效果 (在 app.vue 中定义)
+    name: "fade", // 该路由使用 fade 布局过渡效果
   },
 });
 </script>
@@ -612,3 +611,174 @@ definePageMeta({
 > 2. 只更改布局, 不更改页面: 触发布局过渡效果
 > 3. 布局打开/关闭 `definePageMeta({ layout: false })` 或 `setPageLayout(false)` 时, 不会触发布局过渡效果
 > 4. 同时更改页面和布局: 只会触发布局过渡效果
+
+### 全局设置过渡效果
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  app: {
+    pageTransition: {
+      // css 类名
+      // .fade-enter-from .fade-enter-active .fade-enter-to
+      // .fade-leave-from .fade-leave-active .fade-leave-to
+      name: "fade",
+      mode: "out-in", // 默认值
+    },
+    layoutTransition: {
+      // css 类名
+      // .slide-enter-from .slide-enter-active .slide-enter-to
+      // .slide-leave-from .slide-leave-active .slide-leave-to
+      name: "slide",
+      mode: "out-in", // 默认值
+    },
+  },
+});
+```
+
+在 app.vue 中使用 `<NuxtPage>` 时，可以传递过渡效果对象, 作为组件属性, 以设置全局过渡效果
+
+```vue
+<template>
+  <div>
+    <NuxtLayout>
+      <NuxtPage
+        :transition="{
+          // css 类名
+          // .bounce-enter-from .bounce-enter-active .bounce-enter-to
+          // .bounce-leave-from .bounce-leave-active .bounce-leave-to
+          name: 'bounce',
+          mode: 'out-in',
+        }"
+      />
+    </NuxtLayout>
+  </div>
+</template>
+```
+
+### 禁用过渡效果
+
+可以为特定的路由禁用 `pageTransition` 页面过渡效果和 `layoutTransition` 布局过渡效果
+
+```vue
+<script setup lang="ts">
+definePageMeta({
+  pageTransition: false,
+  layoutTransition: false,
+});
+</script>
+```
+
+全局禁用过渡效果
+
+```ts
+defineNuxtConfig({
+  app: {
+    pageTransition: false,
+    layoutTransition: false,
+  },
+});
+```
+
+### JS 钩子 (适用于 GSAP 等动画库)
+
+```vue
+<script setup lang="ts">
+definePageMeta({
+  pageTransition: {
+    // css 类名
+    // .fade-enter-from .fade-enter-active .fade-enter-to
+    // .fade-leave-from .fade-leave-active .fade-leave-to
+    name: "flip",
+    mode: "out-in",
+    onBeforeEnter(el) => {},
+    onEnter: (el, done) => {},
+    onAfterEnter: (el) => {},
+    onEnterCancelled(el) => {},
+    onBeforeLeave(el) => {},
+    onLeave(el, done) => {},
+    onAfterLeave(el) => {},
+    onLeaveCancelled(el) => {},
+  },
+});
+</script>
+```
+
+### 条件过渡效果
+
+::: code-group
+
+```vue [pages/[id].vue]
+<script setup lang="ts">
+definePageMeta({
+  pageTransition: {
+    name: "slide-right", // 默认使用 slide-right 页面过渡效果
+    mode: "out-in", // 默认值
+  },
+  middleware(to: any, from: any) {
+    // 条件过渡效果
+    to.meta.pageTransition.name =
+      // id 小到大: 使用 slide-left 页面过渡效果
+      // id 大到小: 使用 slide-right 页面过渡效果
+      Number.parseInt(to.params.id) > Number.parseInt(from.params.id)
+        ? "slide-left" // slide-left: leave-to <--- 500px --- id <--- 500px --- enter-from
+        : "slide-right"; // slide-right: enter-from --- 500px ---> id --- 500px ---> leave-to
+  },
+});
+const route = useRoute();
+</script>
+
+<template>
+  <div class="flex items-center justify-center">{{ route.params.id }}</div>
+</template>
+
+<style lang="css" scoped>
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.5s;
+}
+
+.slide-left-enter-from,
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translate(500px, 0);
+}
+
+.slide-left-leave-to,
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translate(-500px, 0);
+}
+</style>
+```
+
+```vue [layouts/default.vue]
+<script setup lang="ts">
+const route = useRoute();
+const id = computed(() => Number(route.params.id ?? 1));
+const subId = computed(() => `/${id.value - 1}`);
+const addId = computed(() => `/${id.value + 1}`);
+</script>
+
+<template>
+  <div>
+    <slot />
+    <div v-if="route.params.id">
+      <NuxtLink :to="subId">id 大到小: 使用 slide-right 页面过渡效果</NuxtLink>
+      <NuxtLink :to="addId">id 小到大: 使用 slide-left 页面过渡效果</NuxtLink>
+    </div>
+  </div>
+</template>
+```
+
+```vue [app.vue]
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>
+```
+
+:::
