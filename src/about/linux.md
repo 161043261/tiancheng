@@ -11,14 +11,18 @@ source "$ZSH/oh-my-zsh.sh"
 export EDITOR="vim"
 
 # user
-proxy=$(ip route | grep 'default' | awk '{print $3}'):7890
-export HTTP_PROXY=http://$proxy
-export HTTPS_PROXY=http://$proxy
-export ALL_PROXY=socks5://$proxy
+alias code="/Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin/code"
+alias defaults_killall="defaults write com.apple.dock ResetLaunchPad -bool TRUE && killall Dock"
+export HTTP_PROXY="http://127.0.0.1:7890"
+export HTTPS_PROXY="http://127.0.0.1:7890"
+export ALL_PROXY="socks5://127.0.0.1:7890"
+
+# Python
+export PATH="$HOME/venv/bin:$PATH"
 
 # C, CC
-export CC="/usr/bin/gcc"
-export CXX="/usr/bin/g++"
+export CC="/usr/bin/clang"
+export CXX="/usr/bin/clang++"
 export CMAKE_GENERATOR="Ninja"
 
 # JS, TS
@@ -26,22 +30,20 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# Python3
-export PATH="$HOME/venv/bin:$PATH"
-
 # pnpm
-export PNPM_HOME="/home/user/.local/share/pnpm"
+export PNPM_HOME="/Users/usr1/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
 
-. "$HOME/.deno/env"
+# . "$HOME/.deno/env"
 
 # Go
 export GOPATH="$HOME/go"
 export GOBIN="$GOPATH/bin"
+export GOPROXY=https://goproxy.io,direct
 ```
 
 ## vim
@@ -115,16 +117,6 @@ git config --global init.defaultBranch main && \
 git config --global core.filemode false && \
 ssh-keygen -t rsa -C 'yukino161043261@gmail.com'
 
-# proxy
-vim ~/.bashrc
-
-proxy="127.0.0.1:7890"
-export HTTP_PROXY=http://$proxy
-export HTTPS_PROXY=http://$proxy
-export ALL_PROXY=socks5://$proxy
-
-source ~/.bashrc
-
 # zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
@@ -138,7 +130,6 @@ python3 -m venv ~/python3
 # nvm for nodejs
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 nvm ls-remote
-npm install typescript -g
 
 # pnpm
 curl -fsSL https://get.pnpm.io/install.sh | sh -

@@ -1,7 +1,7 @@
 # Nuxt 入门
 
-runtimeConfig: 需要在构建后使用环境变量指定的私有 (服务器可用) 或公有 (服务器和客户端都可用) 令牌
-appConfig: 构建时已确定的公有令牌, 例如页面的标题, 主题等
+- nuxt.config.ts 中的 runtimeConfig: 需要在构建后使用环境变量指定的私有 (服务器可用) 或公有 (服务器和客户端都可用) 令牌
+- app.config.ts 中的 appConfig: 构建时已确定的公有令牌, 例如页面的标题, 主题等
 
 ## 组件
 
@@ -45,13 +45,13 @@ appConfig: 构建时已确定的公有令牌, 例如页面的标题, 主题等
 
 :::
 
-### NuxtLink
+### `<NuxtLink>` 标签
 
-类似 vue-router 的 `<RouterView>`
+类似 vue-router 的 `<RouterView>` 标签
 
 `<NuxtLink>` 渲染一个 `<a>` 标签, 将 href 属性设置为页面的路由; 使用 JS 更新浏览器 URL 以实现路由导航, 这样可以避免整页刷新, 同时允许动画效果
 
-Nuxt 会预取 prefetch 组件和生成的页面, 加快路由导航速度
+Nuxt 会预取 (prefetch) 组件和生成的页面, 加快路由导航速度
 
 ```vue
 <NuxtLink to="/about">About</NuxtLink>
@@ -232,21 +232,198 @@ definePageMeta({
 - /public 目录中的资源, vite/webpack 不会处理
 - /assets 目录中的资源, vite/webpack 会处理, 可以使用 ~/@ 别名
 
+### 字体文件
+
+字体文件放在 /public 目录下, 可以在样式表中使用 url 引入
+
+/assets/css/global.css
+
+```css
+@font-face {
+  font-family: 'Iosevka Web';
+  // 避免字体闪烁
+  font-display: swap;
+  font-weight: 400;
+  font-stretch: normal;
+  font-style: normal;
+  src: url('/Iosevka-Regular.woff2') format('woff2');
+}
+```
+
+## 样式
+
+### 在组件中导入样式
+
+pages/index.vue
+
+```vue
+<script>
+// 静态导入, 兼容服务器端
+import "~/assets/css/style.css";
+// 动态导入, 不兼容服务器端
+import("~/assets/css/style.css");
+</script>
+```
+
 ### 全局样式
 
 nuxt.config.ts
 
 ```ts
-// assets/_global.scss
 export default defineNuxtConfig({
-  vite: {
-    css: {
-      preprocessorOptions: {
-        scss: {
-          additionalData: '@use "@/assets/_global.scss" as *;',
+  css: ["~/assets/css/global.css"],
+});
+```
+
+### animate.css
+
+::: code-group
+
+```bash [安装]
+pnpm install animate.css
+```
+
+```vue [在组件中使用]
+<!-- 在 script 标签中使用 -->
+<script lang="ts" setup>
+/** 打包的 HTML 文件将内联 animated.css, 不会分包  */
+import "animate.css";
+</script>
+
+<!-- 在 style 标签中使用 -->
+<style lang="css">
+/** 打包的 HTML 文件将内联 animated.css, 不会分包  */
+@import url("animate.css");
+</style>
+```
+
+```ts [在 nuxt.config.ts 中全局使用]
+/** 打包的所有 HTML 文件将内联 animated.css, 不会分包  */
+export default defineNuxtConfig({
+  css: ["animate.css"],
+});
+```
+
+:::
+
+### 外部样式表 (CDN)
+
+`nuxt.config.ts`
+
+```ts
+export default defineNuxtConfig({
+  app: {
+    head: {
+      link: [
+        {
+          rel: "stylesheet",
+          href: "https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css",
         },
-      },
+      ],
     },
   },
 });
 ```
+
+使用 useHead 组合式函数, 动态导入外部样式表
+
+```ts
+useHead({
+  link: [
+    {
+      rel: "stylesheet",
+      href: "https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css",
+    },
+  ],
+});
+```
+
+### 使用预处理器
+
+`pnpm install sass` 安装 Sass 预处理器
+
+::: code-group
+
+```vue [在组件中使用]
+<style lang="scss" setup>
+// 打包的 HTML 文件将内联 global.scss, 不会分包
+@use "~/assets/scss/global.scss";
+</style>
+```
+
+```ts [在 nuxt.config.ts 中全局使用]
+// 打包的所有 HTML 文件将内联 global.scss, 不会分包
+export default defineNuxtConfig({
+  css: ["~/assets/scss/global.scss"],
+});
+```
+
+:::
+
+### Vue 单文件组件 (SFC)
+
+::: code-group
+
+```vue [ref/reactive]
+<script setup lang="ts">
+const isActive = ref(true);
+const hasError = ref(false);
+const classObject = reactive({
+  active: true,
+  "text-danger": false,
+});
+</script>
+
+<template>
+  <div
+    class="static"
+    :class="{ active: isActive, 'text-danger': hasError }"
+  ></div>
+  <div :class="classObject"></div>
+</template>
+```
+
+```vue [computed 计算属性]
+<script setup lang="ts">
+const isActive = ref(true);
+const error = ref<{ type: string } | null>(null);
+
+const classObject = computed(() => ({
+  active: isActive.value && !error.value,
+  "text-danger": error.value && error.value.type === "fatal",
+}));
+</script>
+
+<template>
+  <div :class="classObject"></div>
+</template>
+```
+
+```vue [动态类名数组]
+<script setup lang="ts">
+const isActive = ref(true);
+const errorClass = ref("text-danger");
+</script>
+
+<template>
+  <div :class="[{ active: isActive }, errorClass]"></div>
+</template>
+```
+
+```vue [v-bind 动态样式]
+<script setup lang="ts">
+const color = ref("red");
+</script>
+
+<template>
+  <div class="text">hello</div>
+</template>
+
+<style>
+.text {
+  color: v-bind(color);
+}
+</style>
+```
+
+:::
