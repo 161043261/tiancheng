@@ -3,7 +3,6 @@ export default {
     {
       text: "欢迎",
       items: [
-        { text: "2025", link: "/about/year/25" },
         { text: "Docker", link: "/about/docker" },
         { text: "Git", link: "/about/git" },
         { text: "Linux", link: "/about/linux" },
@@ -18,9 +17,9 @@ export default {
     {
       text: "HTML/CSS",
       items: [
-        { text: "HTML", link: "/static/html" },
         { text: "CSS", link: "/static/css" },
         { text: "CSS 2", link: "/static/css2" },
+        { text: "HTML", link: "/static/html" },
         { text: "Sass", link: "/static/sass" },
       ],
     },
@@ -37,8 +36,9 @@ export default {
     },
   ],
   "/framework/": [
-    { text: "Vue3 基础", link: "/framework/vue" },
     { text: "Vue3 高级", link: "/framework/d2vue" },
+    { text: "Nuxt", link: "/framework/nuxt" },
+    { text: "React 基础", link: "/framework/react" },
     { text: "Vue3 Pinia", link: "/framework/vue_pinia" },
     { text: "Vue3 路由", link: "/framework/vue_router" },
     { text: "React 基础", link: "/framework/react" },

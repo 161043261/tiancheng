@@ -24,7 +24,8 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Homepage", link: "/" },
-      { text: "2025", link: "/about/year/25" },
+      { text: "Linux", link: "/about/linux" },
+      { text: "CSS", link: "/static/css" },
       { text: "Vue", link: "/framework/vue" },
     ],
     sidebar: sidebar,
@@ -65,7 +66,7 @@ export default defineConfig({
           type: "font/woff2",
           crossorigin: "",
         },
-      ]
+      ],
     ];
   },
 });
