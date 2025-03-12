@@ -454,23 +454,25 @@ Nuxt 内置了 PostCSS
 
 SSR 对 SEO 友好
 
-## 过渡动画
+## 过渡效果
 
 基于 Vue 的 `<Transition>`
 
 ### 页面过渡
 
-在 `nuxt.config.ts` 中开启页面过渡, 为所有 /pages/\* 页面应用过渡动画
+- 在 `nuxt.config.ts` 中开启页面过渡, 为所有 /pages/\* 页面应用过渡效果
+- 内置的过渡效果名 page, 应用于所有页面
 
 ```ts
 export default defineNuxtConfig({
   app: {
+    // 内置的过渡效果名 page, 应用于所有页面
     pageTransition: { name: "page", mode: "out-in" },
   },
 });
 ```
 
-编写页面过渡动画的样式
+编写页面过渡效果的样式
 
 ::: code-group
 
@@ -515,9 +517,47 @@ export default defineNuxtConfig({
 
 :::
 
+> - 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
+> - 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
+
+::: code-group
+
+```vue [app.vue]
+<template>
+  <NuxtPage />
+</template>
+
+<style>
+/* 过渡效果名: rotate */
+.rotate-enter-active,
+.rotate-leave-active {
+  transition: all 0.5s;
+}
+.rotate-enter-from,
+.rotate-leave-to {
+  opacity: 0;
+  transform: rotate3d(1, 1, 1, 15deg);
+}
+</style>
+```
+
+```vue [pages/about.vue]
+<script setup lang="ts">
+definePageMeta({
+  // 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
+  pageTransition: {
+    name: "rotate", // 该页面使用 rotate 页面过渡效果 (在 app.vue 中定义)
+  },
+});
+</script>
+```
+
+:::
+
 ### 布局过渡
 
-在 `nuxt.config.ts` 中开启布局过渡, 为所有 /layouts/\* 布局应用过渡动画
+- 在 `nuxt.config.ts` 中开启布局过渡, 为所有 /layouts/\* 布局应用过渡效果
+- 内置的过渡效果名 layout, 应用于所有布局
 
 ```ts
 export default defineNuxtConfig({
@@ -527,7 +567,7 @@ export default defineNuxtConfig({
 });
 ```
 
-编写布局过渡动画的样式
+编写布局过渡效果的样式
 
 ```vue
 <template>
@@ -549,11 +589,26 @@ export default defineNuxtConfig({
 </style>
 ```
 
-使用 setPageLayout 函数动态更改布局
+备注: 可以使用 setPageLayout 函数动态更改布局
+
+> - 可以通过 definePageMeta 宏函数指定 pageTransition 属性, 单独指定某个页面的页面过渡效果
+> - 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
+
+```vue
+<script setup lang="ts">
+definePageMeta({
+  // 可以通过 definePageMeta 宏函数指定 layoutTransition 属性, 单独指定某个页面的布局过渡效果
+  layout: "lightblue", // 该页面使用 lightblue 布局
+  layoutTransition: {
+    name: "fade", // 该页面使用 fade 布局过渡效果 (在 app.vue 中定义)
+  },
+});
+</script>
+```
 
 > [!warning]
 >
-> 1. 只更改页面, 不更改布局: 触发页面过渡动画
-> 2. 只更改布局, 不更改页面: 触发布局过渡动画
-> 3. 布局打开/关闭 `definePageMeta({ layout: false })` 或 `setPageLayout(false)` 时, 不会触发布局过渡动画
-> 4. 同时更改页面和布局: 只会触发布局过渡动画
+> 1. 只更改页面, 不更改布局: 触发页面过渡效果
+> 2. 只更改布局, 不更改页面: 触发布局过渡效果
+> 3. 布局打开/关闭 `definePageMeta({ layout: false })` 或 `setPageLayout(false)` 时, 不会触发布局过渡效果
+> 4. 同时更改页面和布局: 只会触发布局过渡效果
