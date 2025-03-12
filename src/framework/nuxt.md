@@ -11,7 +11,7 @@
 
 在 pages/ 目录下创建页面, pages/ 目录下的 vue 文件自动绑定路由
 
-### 文件路由
+## 路由 (文件路由)
 
 ::: code-group
 
@@ -47,7 +47,7 @@
 
 ### `<NuxtLink>` 标签
 
-类似 vue-router 的 `<RouterView>` 标签
+类似 vue-router 的 `<RouterLink>` 标签
 
 `<NuxtLink>` 渲染一个 `<a>` 标签, 将 href 属性设置为页面的路由; 使用 JS 更新浏览器 URL 以实现路由导航, 这样可以避免整页刷新, 同时允许动画效果
 
@@ -130,6 +130,11 @@ definePageMeta({
 > 布局名: 根据 ts 文件名转换为 kebab-case 烤串命名, 例如 `someLayout.ts` 对应的布局名 `some-layout`
 
 ### 在 app.vue 中开启布局
+
+> [!warning]
+>
+> - `<NuxtLink>` 类似 Vue 的 `<RouterLink>`, 用于路由导航
+> - `<NuxtPage>` 类似 Vue 的 `<RouterView>`, 用于渲染当前路由对应的页面
 
 ```vue
 <template>
@@ -257,7 +262,7 @@ definePageMeta({
 pages/index.vue
 
 ```vue
-<script>
+<script lang="ts" setup>
 // 静态导入, 兼容服务器端
 import "~/assets/css/style.css";
 // 动态导入, 不兼容服务器端
@@ -345,7 +350,7 @@ useHead({
 ::: code-group
 
 ```vue [在组件中使用]
-<style lang="scss" setup>
+<style lang="scss">
 // 打包的 HTML 文件将内联 global.scss, 不会分包
 @use "~/assets/scss/global.scss";
 </style>
@@ -375,11 +380,10 @@ const classObject = reactive({
 </script>
 
 <template>
-  <div
-    class="static"
-    :class="{ active: isActive, 'text-danger': hasError }"
-  ></div>
-  <div :class="classObject"></div>
+  <div class="static" :class="{ active: isActive, 'text-danger': hasError }">
+    Nuxt
+  </div>
+  <div :class="classObject">Nuxt</div>
 </template>
 ```
 
@@ -395,7 +399,7 @@ const classObject = computed(() => ({
 </script>
 
 <template>
-  <div :class="classObject"></div>
+  <div :class="classObject">Nuxt</div>
 </template>
 ```
 
@@ -406,17 +410,17 @@ const errorClass = ref("text-danger");
 </script>
 
 <template>
-  <div :class="[{ active: isActive }, errorClass]"></div>
+  <div :class="[{ active: isActive }, errorClass]">Nuxt</div>
 </template>
 ```
 
 ```vue [v-bind 动态样式]
 <script setup lang="ts">
-const color = ref("red");
+const color = ref("#ff0000");
 </script>
 
 <template>
-  <div class="text">hello</div>
+  <div class="text">Nuxt</div>
 </template>
 
 <style>
@@ -427,3 +431,33 @@ const color = ref("red");
 ```
 
 :::
+
+### Vue `<style>` 标签的 module 属性
+
+```vue
+<template>
+  <p :class="$style.red">This should be red</p>
+</template>
+
+<style lang="css" module>
+.red {
+  color: #ff0000;
+}
+</style>
+```
+
+### 使用 PostCSS
+
+Nuxt 内置了 PostCSS
+
+## SEO 和 meta
+
+SSR 对 SEO 友好
+
+## 过渡效果
+
+基于 Vue 的 `<Transition>`
+
+在 `nuxt.config.ts` 中开启页面过渡, 为所有的页面应用过渡效果
+
+## 数据获取
