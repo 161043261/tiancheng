@@ -1,4 +1,4 @@
-# Nuxt 入门
+# Nuxt 基础
 
 - nuxt.config.ts 中的 runtimeConfig: 需要在构建后使用环境变量指定的私有 (服务器可用) 或公有 (服务器和客户端都可用) 令牌
 - app.config.ts 中的 appConfig: 构建时已确定的公有令牌, 例如页面的标题, 主题等
@@ -15,9 +15,9 @@
 
 ::: code-group
 
-```txt [文件路由]
+```bash [文件路由]
 .
-├── pages/
+└── pages/
     ├── about.vue
     ├── index.vue
     └── posts/
@@ -1255,3 +1255,178 @@ const addBaz = () => baz.value++;
 ```
 
 :::
+
+## 错误处理
+
+- SSR, Server-Side Rendering 服务器端渲染
+- CSR, Client-Side Rendering 客户端渲染
+
+Nuxt 是一个全栈框架, 可能发生几种无法预防的运行时错误
+
+1. Vue 错误 (SSR 和 CSR)
+2. 启动错误 (SSR 和 CSR)
+3. Nitro 服务器错误 (server/ 目录)
+4. 下载 JS chunk 时错误
+
+### 编写错误处理插件
+
+```ts
+// plugins/error-handler.ts
+export default defineNuxtPlugin((nuxtApp) => {
+  // 打印所有 Vue 错误, 包括已处理的错误
+  nuxtApp.vueApp.config.errorHandler = (error, instance, info) => {
+    console.log(error, instance, info);
+  };
+
+  // 等价于
+  nuxtApp.hook("vue:error", (error, instance, info) => {
+    console.log(error, instance, info);
+  });
+
+  // 打印所有启动错误
+  nuxtApp.hook("app:error", (error) => {
+    console.log(error);
+  });
+});
+```
+
+### 编写全局错误页面
+
+错误页面 error.vue 不能放在 /pages 目录下, 不能使用 definePageMeta 宏函数
+
+```vue
+<!-- error.vue -->
+<script setup lang="ts">
+import type { NuxtError } from "#app";
+
+defineProps<{
+  error: NuxtError;
+}>();
+
+const handleError = () => {
+  // 清除当前的 Nuxt 错误, 并导航到指定页面
+  clearError({ redirect: "/" });
+};
+</script>
+
+<template>
+  <div>
+    <p>statusCode: {{ error.statusCode }}</p>
+    <p>fatal: {{ error.fatal }}</p>
+    <p>unhandled: {{ error.unhandled }}</p>
+    <p>statusMessage: {{ error.statusMessage }}</p>
+    <!-- 可以在 data 中设置自定义字段 -->
+    <p>data: {{ JSON.stringify(error.data) }}</p>
+    <p>cause: {{ JSON.stringify(error.cause) }}</p>
+    <button @click="handleError">处理错误</button>
+  </div>
+</template>
+```
+
+### 错误工具
+
+`useError()`: 返回正在处理的全局 Nuxt 错误
+
+`createError(): Error` 抛出 Nuxt 错误
+
+- 服务器端抛出 createError 创建的错误, 会触发全局错误页面
+- 客户端只有抛出 createError 创建的 `{ fatal: true }` 致命错误, 才会触发全局错误页面
+
+```ts
+throw createError({
+  data: {
+    timestamp: new Date(),
+  },
+  statusCode: 500,
+  statusMessage: "致命错误",
+  fatal: true,
+});
+```
+
+`showError()` 手动触发全局错误页面
+
+`clearError()` 清除当前的 Nuxt 错误, 并导航到指定页面
+
+### 客户端组件渲染错误
+
+Nuxt 提供了 `<NuxtErrorBoundary>` 组件, 处理客户端组件渲染错误, 而无需使用全局错误页面替换当前页面
+
+```vue
+<script lang="ts" setup>
+const errorLogger = (err: unknown) => console.error(err);
+</script>
+
+<template>
+  <!-- 页面内容 -->
+  <NuxtErrorBoundary @error="errorLogger">
+    <template #error="{ error, clearError }">
+      客户端组件渲染错误: {{ error }}
+      <button @click="clearError">清除错误</button>
+    </template>
+  </NuxtErrorBoundary>
+</template>
+```
+
+## Nitro 服务器
+
+### server 目录
+
+```bash
+└── server/
+    ├── api/           # 带 /api 前缀的服务器端接口文件
+    │   └── hello.ts   # /api/hello
+    ├── routes/        # 不带 /api 前缀的服务器端接口文件
+    │   └── bonjour.ts # /bonjour
+    └── middleware/    # 服务器端中间件
+        └── log.ts     # 后端日志中间件
+```
+
+每个文件 (hello.ts, bonjour.ts, log.ts, ...) 都应该**默认导出**一个使用 `defineEventHandler()` 或 `eventHandler` (别名) 定义的函数, handler 可以 return JSON 字符串, return Promise 对象, 或使用 `event.node.res.end()` 发送响应数据
+
+::: code-group
+
+```ts [server/api/hello.ts]
+export default defineEventHandler((event) => {
+  return { hello: "Nitro" };
+  // return JSON.stringify({ hello: "Nitro" });
+  // return Promise.resolve("Nitro");
+  // event.node.res.end({ hello: "Nitro" }); return;
+});
+```
+
+```vue [pages/index.vue]
+<script setup lang="ts">
+const { clear, data, error, refresh, status } = await useFetch("/api/hello");
+console.log(data.value); // { hello: 'Nitro' }
+</script>
+```
+
+:::
+
+- server/api/ 目录: 放带 /api 前缀的服务器端接口文件
+- server/routes 目录: 放不带 /api 前缀的服务器端接口文件
+- server/middleware 目录: 放服务器端中间件文件
+
+### 服务器中间件
+
+中间件会处理服务器端路由上的每个请求
+
+示例 `server/middleware/log.ts`
+
+```ts
+export default defineEventHandler((event) => {
+  // 新请求的 URL: http://localhost:3000/
+  // context 的键名数组: [ 'nitro', '_nitro' ]
+  // 注意: 在 pages/index.vue 中 `await useFetch('/api/hello')`
+
+  // 新请求的 URL: http://localhost:3000/api/hello
+  // context 的键名数组: [ 'nitro', '_nitro', 'auth', 'matchedRoute', 'params', '_payloadReducers' ]
+  console.log("新请求的 URL:", getRequestURL(event).href);
+  console.log("context 的键名数组:", Object.keys(event.context));
+  event.context.auth = { timestamp: Date.now() };
+});
+```
+
+### 服务器插件
+
+Nuxt 扫描`server/plugins` 目录下的所有文件, 并注册为 Nitro 服务器插件
