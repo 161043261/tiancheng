@@ -1403,9 +1403,13 @@ console.log(data.value); // { hello: 'Nitro' }
 
 :::
 
-- server/api/ 目录: 放带 /api 前缀的服务器端接口文件
-- server/routes 目录: 放不带 /api 前缀的服务器端接口文件
-- server/middleware 目录: 放服务器端中间件文件
+| 目录               | 文件                         |
+| ------------------ | ---------------------------- |
+| server/api/        | 带 /api 前缀的服务器端接口   |
+| server/routes/     | 不带 /api 前缀的服务器端接口 |
+| server/middleware/ | 服务器端中间件               |
+| server/plugins/    | 服务器插件                   |
+| server/utils/      | 服务器 utils                 |
 
 ### 服务器中间件
 
@@ -1427,6 +1431,64 @@ export default defineEventHandler((event) => {
 });
 ```
 
-### 服务器插件
+### 动态路由参数
 
-Nuxt 扫描`server/plugins` 目录下的所有文件, 并注册为 Nitro 服务器插件
+::: code-group
+
+```ts [server/api/hello/[name].ts]
+export default defineEventHandler(async (event) => {
+  const name = getRouterParam(event, "name");
+  return `Hello ${name}`;
+});
+```
+
+```vue [pages/index.vue]
+<script setup lang="ts">
+const { data } = await useFetch("/api/hello/Yukino");
+console.log(data); // Hello Yukino
+</script>
+```
+
+:::
+
+### 匹配 HTTP 请求方法
+
+使用 .get, .post, .put, .delete 文件名后缀, 以匹配 HTTP 请求方法
+
+::: code-group
+
+```ts [server/api/test.get.ts]
+export default defineEventHandler(() => "Get test");
+```
+
+```ts [server/api/test.post.ts]
+export default defineEventHandler(() => "Post test");
+```
+
+:::
+
+- GET 方法: 返回 'Get test'
+- POST 方法: 返回 'Post test'
+- 其他方法: 405 Method Not Allowed
+
+::: code-group
+
+```ts [server/api/foo/index.get.ts]
+export default defineEventHandler((event) => {
+  // handle GET requests for the `api/foo` endpoint
+});
+```
+
+```ts [server/api/foo/index.post.ts]
+export default defineEventHandler((event) => {
+  // handle POST requests for the `api/foo` endpoint
+});
+```
+
+```ts [/server/api/foo/bar.get.ts]
+export default defineEventHandler((event) => {
+  // handle GET requests for the `api/foo/bar` endpoint
+});
+```
+
+:::
