@@ -1845,7 +1845,3 @@ emitter.off("event-type");
 ```
 
 :::
-
-## 跨域
-
-1. jsonp

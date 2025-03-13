@@ -330,7 +330,7 @@ export default defineNuxtConfig({
 });
 ```
 
-使用 useHead 组合式函数, 动态导入外部样式表
+使用 useHead 组合函数, 动态导入外部样式表
 
 ```ts
 useHead({
@@ -778,6 +778,479 @@ const addId = computed(() => `/${id.value + 1}`);
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
+</template>
+```
+
+:::
+
+## 数据获取
+
+- useFetch 函数: 用于获取数据, 是对 useAsyncData 和 $fetch 的封装
+- $fetch 函数: 适用于用户交互事件, 或者配合 useAsyncData 使用
+- useAsyncData 函数: 可以结合 $fetch, 实现更精细的控制
+
+如果在 Vue 组件的 setup 函数中使用 $fetch 函数获取数据, 可能导致数据获取两次
+
+1. 在服务器端获取一次, 服务器会执行一次 $fetch, 将渲染的静态 HTML 发送给浏览器
+2. 在浏览器获取一次, **浏览器的 Vue 组件将服务器端渲染的静态 HTML "激活" 为交互式 SPA 单页应用 (Hydration)** 时, 也会执行一次 $fetch
+
+useFetch 和 useAsyncData 组合函数, 可以避免浏览器 Hydration 时重复获取相同的数据
+
+```vue
+<script setup lang="ts">
+// useFetch 用于获取数据
+const { data } = await useFetch("/api/data");
+
+async function handleFormSubmit() {
+  // $fetch 函数: 适用于用户交互事件
+  const res = await $fetch("/api/submit", {
+    method: "POST",
+    body: {
+      // form data
+    },
+  });
+}
+</script>
+
+<template>
+  <div v-if="data == null">No data</div>
+  <div v-else>{{ data }}</div>
+  <form @submit="handleFormSubmit"></form>
+</template>
+```
+
+### `<Suspense>`
+
+Nuxt 底层使用 Vue 的 `<Suspense>`, 可以确保获取所有异步数据后, 才进行路由导航 (联想 `<Suspense>` 的 #fallback 插槽)
+
+可以为路由导航添加进度条
+
+```vue
+<template>
+  <NuxtLoadingIndicator />
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>
+```
+
+### $fetch
+
+$fetch 基于 [ofetch](https://github.com/unjs/ofetch) 库, ofetch 库提供了解析响应, 错误处理, 自动重试, 超时, 拦截器等功能
+
+> [!warning]
+>
+> - $fetch 不能避免浏览器 Hydration 时重复获取相同的数据
+> - $fetch 不能确保获取所有异步数据后, 才进行路由导航
+> - $fetch 适用于用户交互事件, 或者结合 useAsyncData 使用
+
+### useFetch
+
+useFetch 组合函数是对 useAsyncData 和 $fetch 的封装
+
+```vue
+<script setup lang="ts">
+const { data: count } = await useFetch("/api/count");
+</script>
+
+<template>页面访问量: {{ count }}</template>
+```
+
+### useAsyncData
+
+`useAsyncData` 获取并缓存响应, 第一个参数 key 是标识第二个参数 (查询函数 handler) 响应缓存的唯一键, key 是可选的
+
+`useFetch(url)` 约等于 `useAsyncData(url, () => $fetch(url))`
+
+返回值: `{ data, refresh, clear, error, status }`
+
+- data: handler 的返回值 (响应数据)
+- error: 错误对象
+- status: 请求状态 'idle' | 'pending' | 'success' | 'error'
+- refresh/execute 函数: `refresh()` 刷新 handler 的返回值 (刷新响应数据)
+- clear 函数: `clear()` 设置 data = undefined; 设置 error = null; 设置 status = 'idle'; 并取消当前请求
+
+```ts
+// 第一个参数 key 是标识第二个参数 (查询函数 handler) 响应的缓存的唯一键
+const { data, error, status /** refresh, clear */ } = await useAsyncData(
+  "key", // key
+  () => $fetch("url"), // handler
+);
+```
+
+默认 useFetch 和 useAsyncData 确保获取所有异步数据后, 才进行路由导航; 可以使用 lazy 选项, 先进行路由导航, 再获取异步数据
+
+```vue
+<script setup lang="ts">
+const { status, data } = useFetch("/api/posts", {
+  lazy: true,
+});
+// 等价于 const { status, data } = useLazyFetch("/api/posts")
+</script>
+
+<template>
+  <div v-if="status === 'pending'">pending</div>
+  <div v-else>{{ JSON.stringify(data) }}</div>
+</template>
+```
+
+### 仅客户端执行的数据获取
+
+适用于首次渲染不需要的数据, 例如非 SEO 敏感数据
+
+```ts
+/* 服务器 (SSR 时), 客户端都执行的数据获取  */
+const articles = await useFetch("/api/article");
+
+/* 仅客户端执行的数据获取 */
+const { status, data: comments } = useFetch("/api/comments", {
+  lazy: true,
+  server: false,
+});
+```
+
+useFetch/useAsyncData 等组合函数必须在 setup 函数中调用, 或者在生命周期函数的顶层调用, 否则应该使用 $fetch 函数
+
+### pick 选项
+
+pick 可以过滤响应数据的有效字段, 减小有效负载的大小
+
+```ts
+// 第一个参数 key 是标识第二个参数 (查询函数 handler) 响应的缓存的唯一键
+const { data: payload } = await useAsyncData("key", () => $fetch("url"));
+console.log(payload.value); // { code: 200, message: 'ok', data: {...} }
+
+const { data: payload2 } = await useAsyncData("key2", () => $fetch("url"), {
+  pick: ["data"],
+});
+console.log(payload2.value); // { data: {...} } 减小有效负载的大小
+```
+
+### watch 选项
+
+```vue
+<script setup lang="ts">
+const id = ref(1);
+
+const { data, error, refresh } = await useFetch(`/api/users/${id.value}`, {
+  // id 改变时, 自动触发 refetch, 但 URL 始终是 /api/users/1
+  // 如果需要响应式的 URL, 则使用计算属性, 或计算 URL
+  watch: [id],
+});
+</script>
+```
+
+### 计算 URL
+
+```vue
+<script setup lang="ts">
+const id = ref(null);
+
+const { data, status } = useLazyFetch("/api/user", {
+  query: {
+    user_id: id, // id 改变时, 自动触发 refetch, 并且 URL 是响应式的 `/api/user?user_id=${id}`
+  },
+});
+</script>
+```
+
+### immediate 选项
+
+```vue
+<script setup lang="ts">
+const id = ref(null);
+
+// lazy: 先进行路由导航, 再获取异步数据
+const { data, status } = useLazyFetch(() => `/api/users/${id.value}`, {
+  // 不立即执行, 即不会 fetch(`/api/users/${null}`)
+  // 等待 ID 改变后, 才 fetch(`/api/users/${id.value}`)
+  immediate: false,
+});
+
+const pending = computed(() => status.value === "pending");
+</script>
+
+<template>
+  <div>
+    <!-- fetching 时, 禁用输入框 -->
+    <input v-model="id" type="number" :disabled="pending" />
+    <div v-if="status === 'idle'">输入 ID</div>
+    <div v-else-if="pending">fetching, 请等待</div>
+    <!-- status: 'idle' | 'pending' | 'error' | 'success' -->
+    <div v-else>{{ data }}</div>
+  </div>
+</template>
+```
+
+## 序列化
+
+::: code-group
+
+```ts [服务器 server/api/foo.ts]
+export default defineEventHandler(() => {
+  const thisObj = new Date();
+  return thisObj; // 使用 JSON.stringify() 序列化
+});
+```
+
+```ts [客户端 app.vue]
+<script setup lang="ts">
+// 虽然服务器返回一个 Date 对象, 但是 data 被推断为字符串类型
+const { data } = await useFetch('/api/foo')
+</script>
+```
+
+:::
+
+### 自定义序列化器函数
+
+::: code-group
+
+```ts [服务器 server/api/bar.ts]
+export default defineEventHandler(() => {
+  const thisObj = {
+    createdAt: new Date(),
+
+    toJSON() {
+      // 自定义序列化器函数
+      return {
+        createdAt: {
+          year: this.createdAt.getFullYear(),
+          month: this.createdAt.getMonth() + 1,
+          day: this.createdAt.getDate(),
+        },
+      };
+    },
+  };
+
+  return thisObj;
+});
+```
+
+```vue [客户端 app.vue]
+<script setup lang="ts">
+// data 的类型被推断为
+// {
+//   createdAt: {
+//     year: number
+//     month: number
+//     day: number
+//   },
+// }
+const { data } = await useFetch("/api/bar");
+</script>
+```
+
+:::
+
+## 状态管理
+
+### 组合函数 useState
+
+- 入参: key, initializer (可选)
+- useState 在服务器端渲染, 在客户端 hydration 时保留, 原生支持 SSR
+- useState 使用唯一的键, 创建一个**在所有组件间共享**的响应式状态
+- useState 的响应式状态会被序列化为 JSON 字符串, 所以不能包含任何无法序列化的: 类,函数, Symbol
+
+最佳实践
+
+- 不要在 `<script setup>` 或 setup() 函数外定义 `const state = ref()`
+- 执行 `export state = ref({})` 将导致服务器上的多个请求共享状态, 可能导致内存泄漏
+
+```vue
+<script setup lang="ts">
+const counter = useState(
+  "counter" /** key */,
+  () => Math.round(Math.random() * 100) /** initializer */,
+);
+</script>
+
+<template>
+  <main>
+    {{ counter }}
+    <button @click="counter++">counter++</button>
+    <button @click="counter--">counter--</button>
+  </main>
+</template>
+```
+
+### 使用 callOnce 异步函数初始化状态
+
+如果需要使用异步获取的数据初始化状态, 则可以使用 callOnce 异步函数
+
+```vue
+<script setup lang="ts">
+const myState = useState("key");
+
+await callOnce(async () => {
+  myState.value = await $fetch("url");
+});
+</script>
+```
+
+### 同时使用 Nuxt useState 和 Pinia
+
+- useState 适合轻量级状态管理, 和 SSR 场景
+- Pinia 适合复杂状态管理
+
+```bash
+# 安装 Pinia
+pnpx nuxi@latest module add pinia
+```
+
+::: code-group
+
+```ts [store/user.ts]
+export const useUserStore = defineStore("user", () => {
+  const name = ref("");
+  const age = ref(0);
+
+  const fetch = () => {
+    const data = await $fetch("url");
+    name.value = data.name;
+    age.value = data.age;
+  };
+});
+```
+
+```vue [app.vue]
+<script setup lang="ts">
+const userStore = useUserStore();
+
+await callOnce(userStore.fetch);
+</script>
+
+<template>
+  <main>
+    <h1>{{ userStore.name }}</h1>
+    <p>{{ userStore.age }}</p>
+  </main>
+</template>
+```
+
+:::
+
+### composables 目录
+
+composables 目录下的组合函数可以自动导入
+
+> Nuxt 仅扫描 composables/ 目录的顶层文件
+>
+> 1. 可以在 composables/index.ts 中重新导出内层文件中的组合函数 (推荐)
+> 2. 可以在 `nuxt.config.ts` 中设置深度扫描
+
+可以命名导出, auto-import: useFoo
+
+```ts
+// composables/useFoo.ts
+export const useFoo = () => {
+  return useState("foo" /** key */, () => "foo" /** initializer */);
+};
+```
+
+可以默认导出, auto-import: useBar
+
+```ts
+// composables/useBar.ts
+export default function () {
+  return useState("bar" /** key */, () => "bar" /** initializer */);
+}
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  imports: {
+    dirs: [
+      "composables", // 扫描顶层文件 (扫描深度 = 0)
+      // 扫描深度 = 1, 文件名 index, 拓展名 ts,js,mts,mjs
+      "composables/*/index.{ts,js,mts,mjs}",
+      "composables/**", // 扫描所有文件
+    ],
+  },
+});
+```
+
+```bash
+# 生成类型声明和元数据
+pnpx nuxi prepare
+pnpx nuxi dev
+pnpx nuxi build
+```
+
+### 案例
+
+pages/about.vue 和 pages/index.vue 的状态: foo, bar, baz 都是同步的, 键名相同即可
+
+::: code-group
+
+```ts [composables/useFoo.ts]
+// 命名导出
+export const useFoo = () => {
+  return useState("foo", () => 3);
+};
+```
+
+```ts [composables/useBar.ts]
+// 默认导出
+export default function () {
+  return useState("bar", () => 7);
+}
+```
+
+```vue [pages/index.vue]
+<script setup lang="ts">
+const useBar = () => useState("bar", () => 3);
+const useFoo = () => useState("foo", () => 4);
+const bar = useBar();
+const foo = useFoo();
+const addBar = () => bar.value++;
+const addFoo = () => foo.value++;
+
+const useBaz = () => useState("baz", () => 5);
+const baz = useBaz();
+const addBaz = () => baz.value++;
+</script>
+
+<template>
+  <main>
+    <NuxtLink to="/about">About page</NuxtLink>
+    foo: {{ foo }}
+    <button @click="addFoo">addFoo</button>
+    bar: {{ bar }}
+    <button @click="addBar">addBar</button>
+    baz: {{ baz }}
+    <button @click="addBaz">addBaz</button>
+  </main>
+</template>
+```
+
+```vue [pages/about.vue]
+<script setup lang="ts">
+const useBar = () => useState("bar", () => 3);
+const useFoo = () => useState("foo", () => 4);
+const bar = useBar();
+const foo = useFoo();
+const addBar = () => bar.value++;
+const addFoo = () => foo.value++;
+
+const useBaz = () => useState("baz", () => 5);
+const baz = useBaz();
+const addBaz = () => baz.value++;
+</script>
+
+<template>
+  <main>
+    <NuxtLink to="/">Index page</NuxtLink>
+    <div>
+      foo: {{ foo }}
+      <button @click="addFoo">addFoo</button>
+      bar: {{ bar }}
+      <button @click="addBar">addBar</button>
+      baz: {{ baz }}
+      <button @click="addBaz">addBaz</button>
+    </div>
+  </main>
 </template>
 ```
 
