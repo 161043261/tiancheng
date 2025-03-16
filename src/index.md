@@ -10,8 +10,8 @@ hero:
     alt: tiancheng
   actions:
     - theme: brand
-      text: "2025"
-      link: /about/year/25
+      text: "网络"
+      link: /about/network
     - theme: alt
       text: HTML/CSS
       link: /static/css
