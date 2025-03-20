@@ -2,11 +2,11 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 hero:
-  name: "画船听雨眠"
-  text: "建议放大 1.5 倍"
+  name: "Powered by VitePress"
+  text: "画船听雨眠"
   tagline: "QQ: 161043261"
   image:
-    src: https://count.getloli.com/get/@tiancheng?theme=miku
+    src: assets/avatar.png
     alt: tiancheng
   actions:
     - theme: brand

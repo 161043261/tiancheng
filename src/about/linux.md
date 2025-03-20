@@ -468,8 +468,6 @@ sudo route -v
 # sudo systemctl restart systemd-resolved.service
 ```
 
-![ip](../assets/ip.png)
-
 ## awk
 
 awk options 'pattern {action}' file
