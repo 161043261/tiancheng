@@ -77,7 +77,7 @@ const App = () => {
     React.createElement(
       "span" /** type: 元素类型 */,
       null /** props: 属性 */,
-      "Tiancheng" /** children: 子元素, 可以是文本或其他虚拟 DOM 对象 */,
+      "Tiancheng" /** children: 子元素, 可以是其他虚拟 DOM 对象, 或数字/字符串 */,
     ),
   );
 };
@@ -85,38 +85,98 @@ const App = () => {
 
 :::
 
-## `React.createElement`
+## ReactNode, JSX.Element, ReactElement, React.FC
 
-`React.createElement(type, props, ...children)` 生成虚拟 DOM 树, 返回一个包含 type (元素类型) 和 props (属性和子元素) 的对象
+- `type ReactNode = null | undefined | boolean | number | string | JSX.Element`, ReactNode 是 React 可以渲染的所有类型, 是最广泛的类型
+- `type JSX.Element = ReactElement` 使用 React.createElement() 或 JSX 标签语法创建的元素的类型
+- React.FC 函数式组件, 需要显式指定特殊的 children 属性, children 属性通常是 ReactNode 类型, 类似 Vue 的 slot 插槽
+- ReactElement 类型, 可以类比 Vue 中的 VNode 类型; React.FC/React.FunctionComponent 类型, 可以类比 Vue 中的 Component 类型
+
+|            | React                                                    | Vue                                                                                 |
+| ---------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 渲染函数   | `const renderFn: () => ReactElement = () => <div></div>` | `const renderFn: () => VNode = () => <div></div>`                                   |
+| 函数式组件 | `const Compo: React.FC = () => <div></div>`              | `const Compo = defineComponent(setup)` 或 `const Card = defineComponent({ setup })` |
+
+React (和 Vue) 中都是单向数据流, 即子组件不能直接修改父组件通过 props 传递的数据
+
+React 源码中使用 `Object.freeze()` 冻结 props 对象
+
+> [!important]
+>
+> - props 中的 children, 类似 Vue 的 slot 插槽
+> - props 中的回调函数, 类似 Vue 的 emit 事件
+
+## 使用 props 进行父子组件通信
+
+props 属性的类型可以是: null, undefined, boolean, number, string, object, Array, function, JSX Element
+
+## 兄弟组件通信
+
+原理: 发布订阅 [mitt](https://github.com/developit/mitt)
 
 ```js
-const React = {
-  // children 可以是文本或其他虚拟 DOM 对象
-  createElement(type, props = {}, ...children) {
-    return {
-      type,
-      props: {
-        ...props /** 属性 */,
-        children /** 子元素 */: children.map((child) =>
-          typeof child === "object" ? child : this.createTextElement(child),
-        ),
-      },
-    };
-  },
+import mitt from "mitt";
+const emitter = mitt();
+// listen to an event
+emitter.on("foo", (ev) => console.log("foo", ev));
+// listen to all events
+emitter.on("*", (type, ev) => console.log(type, ev));
+// fire an event 触发 foo 事件
+emitter.emit("foo", { key: "value" });
+// clearing all events
+emitter.all.clear();
+// working with handler references:
+function onFoo() {}
+emitter.on("foo", onFoo); // 监听 foo 事件
+emitter.off("foo", onFoo); // 取消监听 foo 事件
+```
 
-  createTextElement(text) {
-    return {
-      type: "TEXT_ELEMENT",
-      props: {
-        nodeValue: text,
-        children: [],
-      },
-    };
-  },
+## 受控组件/非受控组件
+
+- 受控组件: 使用 `useState` 实现数据双向绑定, 类似 Vue 的 v-model
+  - 数据更新后, 自动更新视图
+  - 视图更新后 (例如 `onChange`), 需要手动调用 `setState` 更新数据
+- 非受控组件: 不是响应式数据, 使用 `useRef` 操作 DOM 获取值
+- 特殊的非受控组件: `<input type="file" />`, 文件上传
+
+```tsx
+export const ComponentDemo: React.FC = () => {
+  const [value, setValue] = useState("value");
+  const handleChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    // 操作 DOM 获取值
+    setValue(ev.target.value);
+  };
+
+  const value2 = "value2";
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleChange2 = () => {
+    console.log(inputRef.current?.value);
+  };
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const handleUpload = () => {
+    console.log(fileRef.current?.files);
+  };
+  return (
+    <main>
+      <div>value: {value}</div>
+      {/* 受控组件: 使用 useState 实现数据双向绑定 */}
+      <input type="text" value={value} onChange={handleChange} />
+      <div>value2: {value2}</div>
+      {/* 非受控组件: 使用 useRef 操作 DOM 获取值 */}
+      <input
+        type="text"
+        defaultValue={value2}
+        ref={inputRef}
+        onChange={handleChange2}
+      />
+      <input type="file" ref={fileRef} onChange={handleUpload} />
+    </main>
+  );
 };
 ```
 
-react 中应该将数组视为**只读**, 不要修改原数组, 不要使用 push(), pop() 等方法
+React 中应该将数组视为**只读**, 不要修改原数组, 不要使用 push(), pop() 等方法
 
 | 操作 | 不使用                    | 使用                               |
 | ---- | ------------------------- | ---------------------------------- |
@@ -514,7 +574,7 @@ export const UseIdDemo: React.FC = () => {
 };
 ```
 
-## api: createPortal
+## createPortal 传送组件
 
 将一个组件传送到指定的 DOM 节点上, 成为指定 DOM 节点的直接子元素, 类似 Vue 的 Teleport
 
@@ -523,78 +583,34 @@ export const UseIdDemo: React.FC = () => {
 - children: 被传送的组件
 - domNode: 目标 DOM 节点, 一般是 document.body
 - key: 可选参数, 用于唯一标识被传送的组件
+- 返回一个 React 元素 (ReactElement, JSX.Element)
 
-## 使用 props 进行组件通信
+## Suspense 异步渲染
 
-```js
-// 函数组件
-function Component(props) {}
+异步组件/数据/图片加载时, 先展示占位符 (loading state), 即骨架屏, 类似 Vue 的 Suspense
+
+::: code-group
+
+```tsx [React Suspense]
+<Suspense fallback={<div>请等待</div>}>
+  <AsyncComponent />
+</Suspense>
 ```
 
-props.children 类似 Vue 的插槽
-
-props 属性的类型: null, undefined, boolean, number, string, Object, Array, Function, JSX Element
-
-## 兄弟组件通信
-
-原理: 发布订阅 [mitt](https://github.com/developit/mitt)
-
-```js
-import mitt from "mitt";
-const emitter = mitt();
-// listen to an event
-emitter.on("foo", (ev) => console.log("foo", ev));
-// listen to all events
-emitter.on("*", (type, ev) => console.log(type, ev));
-// fire an event 触发 foo 事件
-emitter.emit("foo", { key: "value" });
-// clearing all events
-emitter.all.clear();
-// working with handler references:
-function onFoo() {}
-emitter.on("foo", onFoo); // 监听 foo 事件
-emitter.off("foo", onFoo); // 取消监听 foo 事件
+```vue [Vue Suspense]
+<template>
+  <Suspense>
+    <!-- fallback 插槽 -->
+    <template #fallback>
+      <div>请等待</div>
+    </template>
+    <!-- default 插槽 -->
+    <AsyncComponent />
+  </Suspense>
+</template>
 ```
 
-## 受控组件/非受控组件
-
-- 受控组件: 数据双向绑定, 类似 Vue `v-model`
-- 非受控组件: 不是响应式数据, 操作原生 DOM 获取值
-- 特殊的非受控组件: input type="file", 文件上传
-
-```tsx
-export const ComponentDemo: React.FC = () => {
-  const [value, setValue] = useState("value");
-
-  const value2 = "value2";
-  const iptRef = useRef<HTMLInputElement>(null);
-  const handleChange = () => {
-    // 操作原生 DOM 获取值
-    console.log(iptRef.current?.value);
-  };
-
-  const fileRef = useRef<HTMLInputElement>(null);
-  const handleUpload = () => {
-    console.log(fileRef.current?.files);
-  };
-  return (
-    <main style={{ ...itemStyle, display: "flex", flexDirection: "column" }}>
-      <input
-        value={value}
-        type="text"
-        onChange={(ev: ChangeEvent<HTMLInputElement>) =>
-          setValue(ev.target.value)
-        }
-      />
-      <div>value: {value}</div>
-
-      <input defaultValue={value2} ref={iptRef} onChange={handleChange} />
-
-      <input type="file" ref={fileRef} onChange={handleUpload} />
-    </main>
-  );
-};
-```
+:::
 
 ## CSS 模块化
 
