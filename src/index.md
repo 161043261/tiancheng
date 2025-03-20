@@ -6,8 +6,8 @@ hero:
   text: "画船听雨眠"
   tagline: "QQ: 161043261"
   image:
-    src: assets/avatar.png
-    alt: tiancheng
+    src: "assets/avatar.png"
+    alt: "tiancheng"
   actions:
     - theme: brand
       text: "网络"
