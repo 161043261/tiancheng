@@ -6,7 +6,7 @@ hero:
   text: "画船听雨眠"
   tagline: "QQ: 161043261"
   image:
-    src: "assets/avatar.png"
+    src: "/avatar.png"
     alt: "tiancheng"
   actions:
     - theme: brand
@@ -19,7 +19,7 @@ hero:
       text: JS/TS
       link: /script/js
     - theme: alt
-      text: 框架
+      text: "框架"
       link: /framework/vue
 
 features:

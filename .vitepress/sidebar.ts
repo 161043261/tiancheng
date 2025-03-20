@@ -37,6 +37,7 @@ export default {
   ],
   "/framework/": [
     { text: "Vue3 高级", link: "/framework/d2vue" },
+    { text: "Build my own React", link: "/framework/my_react" },
     { text: "Nuxt 基础", link: "/framework/nuxt" },
     { text: "React 路由", link: "/framework/react_router" },
     { text: "React 基础", link: "/framework/react" },
