@@ -16,19 +16,34 @@
   src: url("../../src/assets/Iosevka-Bold.woff2") format("woff2");
 }
 
+@font-face {
+  font-family: "YuantiSC Web";
+  font-display: swap;
+  /* font-weight: 400; */
+  font-stretch: normal;
+  font-style: normal;
+  src: url("../../src/assets/Yuanti-SC.ttf") format("truetype");
+}
+
 :root {
-  --vue-green: rgba(66, 184, 131, 0.5);
-  --react-blue: rgba(8, 126, 164, 0.5);
   --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "YuantiSC Web", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
   --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "YuantiSC Web", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(
-    180deg,
-    var(--vue-green),
-    var(--react-blue)
-  );
+}
+
+.VPImage {
+  border-radius: 50%;
+  animation: rotate 10s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: translate(-60px, -120px) rotate(0deg);
+  }
+  100% {
+    transform: translate(-60px, -120px) rotate(360deg);
+  }
 }

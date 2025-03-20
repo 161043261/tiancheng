@@ -2,7 +2,7 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 hero:
-  name: "Powered by VitePress"
+  name: "(/^▽^)/"
   text: "画船听雨眠"
   tagline: "QQ: 161043261"
   image:
