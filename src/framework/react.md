@@ -1,4 +1,17 @@
-# React 基础 (建设中)
+# React 基础
+
+1. 组件化
+2. 声明式编程, 数据改变时, 自动更新视图
+3. 虚拟 DOM: 虚拟 DOM 是描述真实 DOM 的 JS 对象; 视图更新时, 不直接操作真实 DOM, 创建一个新的虚拟 DOM, 与旧的虚拟 DOM 进行比较, 使用 diff 算法找到最小差异, 将最小差异应用到真实 DOM 上, 以提高性能
+4. 单项数据流: 数据从父组件通过 props 传递到子组件, 子组件不能直接修改父组件的数据
+
+## 创建 React 项目
+
+```bash
+pnpm create vite@latest
+```
+
+public 公有目录和 assets 静态资源目录的区别: public 目录直接被 `cp -r` 到 dist 目录下, assets 目录会被 vite 打包
 
 ## main.ts
 
@@ -11,52 +24,19 @@ const root = createRoot(app);
 root.render(<App />);
 ```
 
-## JSX 规则
+## JSX
 
-1. 组件 (函数) 只能返回一个根元素
+1. JSX 插值 `{value}`
+2. CSS `class` => `className`
+3. 有多个 class `<hr className={`${classVal} class2`} />`
+4. 插入 HTML 片段
 
-```jsx
-function Component() {
-  return (
-    <div>
-      <h1>待办事项</h1>
-      <ul>
-        <li>唱</li>
-        <li>跳</li>
-      </ul>
-    </div>
-  );
+```tsx
+function App() {
+  const htmlSnippet: string = '<section style="color: red">whoami</section>';
+  return <div dangerouslySetInnerHTML={{ __html: htmlSnippet }}></div>;
 }
 ```
-
-或使用空标签 Fragment
-
-```jsx
-function Component() {
-  return (
-    <>
-      <h1>待办事项</h1>
-      <ul>
-        <li>唱</li>
-        <li>跳</li>
-      </ul>
-    </>
-  );
-}
-```
-
-2. 标签必须闭合
-
-```jsx
-function Component() {
-  // <img> 等自闭合标签必须写为 <img />
-  return <img src="vite.svg" alt="vite logo" />;
-}
-```
-
-3. 属性名使用驼峰命名
-
-例: stroke-width => strokeWidth, class => className
 
 ## babel, swc
 
@@ -67,15 +47,74 @@ function Component() {
 3. jsx => js: 将 jsx 语法转换为 js 语法
 4. 自定义插件
 
-### swc
-
-1. es6 => es5, ts => js, jsx => js, ...
-2. 打包
-3. 代码压缩, 优化
+```bash
+pnpm install @babel/core @babel/cli @babel/preset-env @babel/preset-react -D
+```
 
 ## 虚拟 dom
 
+虚拟 DOM 是描述真实 DOM 的 JS 对象; 视图更新时, 不直接操作真实 DOM, 创建一个新的虚拟 DOM, 与旧的虚拟 DOM 进行比较, 使用 diff 算法找到最小差异, 将最小差异应用到真实 DOM 上, 以提高性能
+
 优点: 性能好, 跨平台
+
+::: code-group
+
+```tsx [TSX]
+const App = () => {
+  return (
+    <div age="23">
+      <span>Tiancheng</span>
+    </div>
+  );
+};
+```
+
+```js [使用 babel/swc 转换后的 JS]
+const App = () => {
+  return React.createElement(
+    "div",
+    { age: 23 },
+    React.createElement(
+      "span" /** type: 元素类型 */,
+      null /** props: 属性 */,
+      "Tiancheng" /** children: 子元素, 可以是文本或其他虚拟 DOM 对象 */,
+    ),
+  );
+};
+```
+
+:::
+
+## `React.createElement`
+
+`React.createElement(type, props, ...children)` 生成虚拟 DOM 树, 返回一个包含 type (元素类型) 和 props (属性和子元素) 的对象
+
+```js
+const React = {
+  // children 可以是文本或其他虚拟 DOM 对象
+  createElement(type, props = {}, ...children) {
+    return {
+      type,
+      props: {
+        ...props /** 属性 */,
+        children /** 子元素 */: children.map((child) =>
+          typeof child === "object" ? child : this.createTextElement(child),
+        ),
+      },
+    };
+  },
+
+  createTextElement(text) {
+    return {
+      type: "TEXT_ELEMENT",
+      props: {
+        nodeValue: text,
+        children: [],
+      },
+    };
+  },
+};
+```
 
 react 中应该将数组视为**只读**, 不要修改原数组, 不要使用 push(), pop() 等方法
 
