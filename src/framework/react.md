@@ -243,28 +243,237 @@ export default function SetState() {
 }
 ```
 
-## hook: useReducer
+## 高级 hook: useReducer
 
-- useReducer 可用于基本类型和引用类型, 集中式状态管理, 适用于复杂类型, 例如数组或对象 (类似于 Vue 的 reactive, 但 reactive 只能用于引用类型)
+- useReducer 可用于基本类型和引用类型, 用于**集中式状态管理** (类似于 Vue 的 reactive, 但 reactive 只能用于引用类型)
 - useState 也可用于基本类型和引用类型 (类似于 Vue 的 ref, ref 可用于基本类型和引用类型)
 
-```js
-const [state, dispatch] = useReducer(
-  reducer /*  */,
-  initializerArg /* 默认值 */,
-  initializer /* 初始化函数 */,
+`const [state, dispatch] = useReducer(reducer, initialState, initializer)`
+
+- state 状态
+- dispatch: `dispatch(action) => reducer(state, action)`, 接收一个 action, 派发 reducer 的调用, 以根据不同的 action 更新状态
+- reducer: `reducer: (state, action: any) => newState` 根据不同的 action 更新状态的纯函数
+- initialState, 初始状态
+- initializer: 初始化状态的函数, 返回 (修改后的) initialState, 只执行 1 次, 可选
+
+默认 `initializer = (initialState) => initialState`
+
+```ts
+const [
+  state /* 状态 */,
+  dispatch /* `dispatch(action) => reducer(state, action)`, 接收一个 action, 派发 reducer 的调用, 以根据不同的 action 更新状态 */
+] = useReducer(
+  reducer /* `reducer: (state, action: any) => newState` 根据不同的 action 更新状态的纯函数 */,
+  initialState /* 初始状态 */,
+  initializer? /* 初始化状态的函数, 返回 (修改后的) initialState, 只执行 1 次, 可选 */,
 );
-// dispatch(action) { reducer(state, action) }
 ```
+
+::: code-group
+
+```ts [reducer]
+const initialState = { cnt: 0 };
+type TState = typeof initialState;
+
+// reducer 根据不同的 action 更新状态的纯函数
+const reducer = (
+  state: TState,
+  action: { type: "add" | "sub"; delta: number },
+) => {
+  console.log("reducer:", action);
+  switch (action.type) {
+    case "add":
+      return { cnt: state.cnt + action.delta }; // 必须返回新对象, 不能修改原对象
+    case "sub":
+      return { cnt: state.cnt - action.delta }; // 必须返回新对象, 不能修改原对象
+    default:
+      return state;
+  }
+};
+```
+
+```ts [initializer]
+// initializer 初始化状态的函数, 返回 (修改后的) initialState, 只执行 1 次
+const initializer = (state: TState) => {
+  console.log("initializer:", state);
+  state.cnt++; // 实际的初始状态: { cnt: 1 };
+  return state;
+};
+
+const [cntState /* state */, dispatch] = useReducer(
+  reducer,
+  initialState, // { cnt: 0 };
+  initializer, // 可选, 默认 initializer = (initialState) => initialState;
+);
+```
+
+```tsx [template]
+export function UseReducerDemo() {
+  // ...
+  return (
+    <>
+      <div>
+        <p>useReducer cnt: {cntState.cnt}</p>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "add", delta: 1 })}
+        >
+          add
+        </button>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "sub", delta: 1 })}
+        >
+          subtract
+        </button>
+      </div>
+    </>
+  );
+}
+```
+
+:::
 
 ## hook: useSyncExternalStore
 
-1. 订阅外部 store, 例如 redux, zustand (类似于 vuex, pinia)
+1. 订阅外部 store, 例如 zustand (类似于 pinia)
 2. 订阅浏览器 api, 例如 online, storage, location, hash, history 等
-3. 抽离逻辑, 编写自定义 hook
+3. 抽离逻辑, 编写自定义 hooks
 4. 支持服务器端渲染
 
-如果 getSnapshot 返回值与上一次返回值不同, 则 react 会重新渲染组件, 如果**总是**返回一个不同的值, 则会进入无限循环 infinite loops, 报错 Maximum update depth exceeded
+```js
+const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?)
+```
+
+- subscribe: 用于订阅数据源更新的函数, 接收 React 提供的 onStoreChange 回调函数, 数据源更新时调用 onStoreChange, 返回取消订阅的函数
+- 💡onStoreChange 通知 React 外部数据源改变, 通知 React 重新调用 getSnapshot 获取当前数据源快照, 以同步状态, 触发重新渲染
+- getSnapshot: 获取当前数据源快照的函数, 如果 getSnapshot 返回值与上一个返回值不同, 则 React 会重新渲染组件, 如果**频繁**返回一个不同的值, 则进入无限循环 infinite loops, 报错 Maximum update depth exceeded
+- getServerSnapshot: 服务器端渲染时, 获取数据源快照的函数
+
+案例 1: 订阅浏览器 localStorage 数据源的自定义 hook `useStorage`
+
+::: code-group
+
+```ts [自定义 hook: useStorage]
+import { useSyncExternalStore } from "react";
+export function useStorage(
+  key: string,
+  initialValue: any,
+): [any, (value: any) => void] {
+  // subscribe 用于订阅数据源更新的函数
+  const subscribe = (onStoreChange: () => void) => {
+    // 接收 React 提供的 onStoreChange 回调函数, 数据源更新时调用 onStoreChange
+    // onStoreChange 通知 React 外部数据源改变, 通知 React 重新调用 getSnapshot 获取当前数据源快照, 以同步状态, 触发重新渲染
+    window.addEventListener("storage", onStoreChange);
+    // 返回取消订阅的函数
+    return () => {
+      window.removeEventListener("storage", onStoreChange);
+    };
+  };
+
+  // 获取当前数据源快照的函数
+  const getSnapshot = () => {
+    return localStorage.getItem(key)
+      ? JSON.parse(localStorage.getItem(key)!)
+      : initialValue;
+  };
+
+  const state /** 状态 */ = useSyncExternalStore(subscribe, getSnapshot);
+  const setData = (value: any) => {
+    localStorage.setItem(key, JSON.stringify(value));
+    // 手动触发 storage 事件 -> 订阅调用 onStorageChange -> 通知调用 getSnapshot
+    window.dispatchEvent(new StorageEvent("storage"));
+  };
+  return [state, setData] as const; // as const: 数组 array 转元组 tuple
+}
+```
+
+```tsx [使用 useStorage]
+export function UseSyncExternalStoreDemo() {
+  const [cnt, setCnt] = useStorage("cnt", 1);
+  return (
+    <div>
+      <p>cnt: {cnt}</p>
+      <button type="button" onClick={() => setCnt(cnt + 1)}>
+        add
+      </button>
+      <button type="button" onClick={() => setCnt(cnt - 1)}>
+        subtract
+      </button>
+    </div>
+  );
+}
+```
+
+:::
+
+> [!warning] Vue 的路由模式: history, hash
+> hash 底层是监听 hashchange 事件, 修改 location.hash 值
+>
+> history 底层是:
+>
+> 1. 监听 popstate 事件 (点击浏览器的前进/后退按钮, 调用 history.go() 时会触发 popstate 事件)
+> 2. 对于编程式导航, router.push() 会调用 window.history.pushState()
+>
+>    调用 history.pushState() 不会触发 popstate 事件
+>
+> 3. 对于编程式导航, router.replace() 会调用 window.history.replaceState()
+>
+>    调用 history.replaceState() 不会触发 popstate 事件
+
+案例 2
+
+::: code-group
+
+```ts [自定义 hook: useHistory]
+export function useHistory(): [
+  string,
+  (url: string) => void, // push
+  (url: string) => void, // replace
+] {
+  const subscribe = (onUrlChange: () => void) => {
+    window.addEventListener("popstate", onUrlChange);
+    // 返回取消订阅
+    return () => {
+      window.removeEventListener("popstate", onUrlChange);
+    };
+  };
+  const getSnapshot = () => {
+    return window.location.href;
+  };
+  const url = useSyncExternalStore(subscribe, getSnapshot);
+  const push = (url: string) => {
+    window.history.pushState({}, "", url);
+    // 手动触发 popstate 事件 -> 订阅调用 onStorageChange -> 通知调用 getSnapshot
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+  const replace = (url: string) => {
+    window.history.replaceState({}, "", url);
+    // 手动触发 popstate 事件 -> 订阅调用 onStorageChange -> 通知调用 getSnapshot
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+  return [url, push, replace] as const;
+}
+```
+
+```tsx [使用 useHistory]
+export function UseSyncExternalStoreDemo2() {
+  const [url, push, replace] = useHistory();
+  return (
+    <div>
+      <p>url: {url}</p>
+      <button type="button" onClick={() => push("/push")}>
+        push
+      </button>
+      <button type="button" onClick={() => replace("/replace")}>
+        replace
+      </button>
+    </div>
+  );
+}
+```
+
+:::
 
 ## hook: useTransition
 
