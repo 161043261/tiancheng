@@ -863,7 +863,7 @@ export default function UseRefDemo2() {
 
 :::
 
-## hook: useImperativeHandle
+## hook: useImperativeHandle (Vue defineExpose)
 
 Imperative Handle 命令式句柄
 
@@ -968,35 +968,72 @@ export function UseImperativeHandleDemo2() {
 
 :::
 
-## hook: useContext
+## hook: useContext (Vue provide/inject)
 
-```bash
-# props 组件间高度耦合
-GrandParent
-└── Parent
-    └── Child
+类似 Vue 的 provide/inject, 祖孙通信
 
-# context
-├── GrandParent
-├── Parent
-└── Child
+对于同一个 context, 内层 context 的值会覆盖外层 context 的值
+
+```tsx{7,10,11,23,24,45-51}
+interface ICntCtx {
+  cnt: number;
+  setCnt: (cnt: number) => void;
+}
+
+// 全局上下文
+const cntCtx = createContext<ICntCtx>({} as ICntCtx /* defaultVal */);
+
+function Child() {
+  const ctxVal = useContext<ICntCtx>(cntCtx); // ctxVal: readonly
+  const { cnt, setCnt } = ctxVal;
+  return (
+    <>
+      <div>Child cnt: {cnt} </div>
+      <button type="button" onClick={() => setCnt(cnt + 1)}>
+        Child add
+      </button>
+    </>
+  );
+}
+
+function Parent() {
+  const ctxVal = useContext<ICntCtx>(cntCtx); // ctxVal: readonly
+  const { cnt, setCnt } = ctxVal;
+  return (
+    <>
+      <div>Parent cnt: {cnt}</div>
+      <button type="button" onClick={() => setCnt(cnt + 1)}>
+        Parent add
+      </button>
+      <Child />
+    </>
+  );
+}
+
+export function UseContextDemo() {
+  const [_cnt, _setCnt] = useState(777);
+  const [cnt, setCnt] = useState(0);
+  return (
+    <div>
+      <div>Grandparent cnt: {cnt}</div>
+      <button type="button" onClick={() => setCnt(cnt + 1)}>
+        Grandparent add
+      </button>
+      {/* .Provider 可省略, props 键必须是 value */}
+      <cntCtx.Provider value={{ cnt: _cnt, setCnt: _setCnt }}>
+        <cntCtx.Provider value={{ cnt, setCnt }}>
+          {/* 对于同一个 context (这里是 cntContext), 内层 context 的值会覆盖外层 context 的值 (这里 cnt 的初始值为 0) */}
+          <Parent />
+        </cntCtx.Provider>
+      </cntCtx.Provider>
+    </div>
+  );
+}
 ```
 
-## hook: useContext
+==================================================
 
-useContext: 解决组件树中, 组件间传递数据的问题, 无需为每个组件手动设置 props, 实现了祖孙间的通信
-
-对于同一个 context, 内层的 context 的 value 会覆盖外层 context 的 value
-
-```jsx
-// React18
-<CntCtx.provider value={{ cnt, setCnt }}></CntCtx.provider>
-
-// React19
-<CntCtx value={{ cnt, setCnt }}></CntCtx>
-```
-
-## React.memo
+## 性能优化 API React.memo
 
 React.memo 用于性能优化, 缓存上一次的渲染结果, 父组件重新渲染不会导致子组件也重新渲染, 子组件的 props, state 或 useContext 改变时才会重新渲染, 避免不必要的渲染
 
@@ -1016,11 +1053,11 @@ const Child = (props) => <div></div>;
 const Child = memo((props) => <div></div>);
 ```
 
-## hook: useMemo
+## 性能优化 hook: useMemo
 
 useMemo 用于性能优化的 hook, 缓存计算值 (函数的返回值) , 仅当依赖项改变时才会重新计算, 类似 Vue 的 computed 计算属性, 返回缓存的计算值 (函数的返回值)
 
-## hook: useCallback
+## 性能优化 hook: useCallback
 
 useCallback 用于性能优化的 hook, 缓存回调函数, 避免回调函数的重复创建, 返回一个缓存的回调函数
 
@@ -1034,9 +1071,9 @@ function useMemo<T>(factory: () => T, dependencies: Array): T;
 function useCallback<T extends Function>(callback: T, dependencies: Array): T;
 ```
 
-## hook: useDebugValue
+## 调试用 hook: useDebugValue
 
-调试用 hook: 检查 -> Components
+检查 -> Components
 
 ```tsx
 // 自定义 hook
@@ -1377,7 +1414,7 @@ export default router;
 
 :::
 
-## styled 原理: ES6 模板字符串
+### styled 原理: ES6 模板字符串
 
 ```ts
 const twArg = "slate";
@@ -1385,7 +1422,6 @@ const twArg2 = 500;
 // const templateStr = `text-${twArg}-${twArg2}`
 
 // parser: 模板字符串的解析函数
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parser(
   templateStrArr: TemplateStringsArray,
   ...insertedValues: any[]
