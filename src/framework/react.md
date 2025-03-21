@@ -347,10 +347,10 @@ const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?)
 
 - subscribe: 用于订阅数据源更新的函数, 接收 React 提供的 onStoreChange 回调函数, 数据源更新时调用 onStoreChange, 返回取消订阅的函数
 - 💡onStoreChange 通知 React 外部数据源改变, 通知 React 重新调用 getSnapshot 获取当前数据源快照, 以同步状态, 触发重新渲染
-- getSnapshot: 获取当前数据源快照的函数, 如果 getSnapshot 返回值与上一个返回值不同, 则 React 会重新渲染组件, 如果**频繁**返回一个不同的值, 则进入无限循环 infinite loops, 报错 Maximum update depth exceeded
+- 💡getSnapshot: 获取当前数据源快照的函数; getSnapshot 返回引用类型时, 如果 getSnapshot 返回值的内存地址与上一个返回值的内存地址不同, 则 React 会重新渲染组件, 如果 getSnapshot 返回值的内存地址**总是**不同的, 则会无限循环, 导致报错 `Maximum update depth exceeded`
 - getServerSnapshot: 服务器端渲染时, 获取数据源快照的函数
 
-案例 1: 订阅浏览器 localStorage 数据源的自定义 hook `useStorage`
+案例 1: 订阅浏览器 window.localStorage 数据源的自定义 hook `useStorage`
 
 ::: code-group
 
@@ -421,7 +421,7 @@ export function UseSyncExternalStoreDemo() {
 >
 >    调用 history.replaceState() 不会触发 popstate 事件
 
-案例 2
+案例 2: 订阅浏览器 window.location.href 数据源的自定义 hook `useHistory`
 
 ::: code-group
 
@@ -475,10 +475,10 @@ export function UseSyncExternalStoreDemo2() {
 
 :::
 
-## hook: useTransition
+## 性能优化 hook: useTransition
 
-- useTransition 用于性能优化, 特别适用于长时间任务, 例如计算/请求/渲染大量数据等
-- useTransition 将某些更新标记为过渡更新, 即降低某些更新的优先级, React 先处理高优先级的更新, 例如用户输入; 延迟处理过渡更新, 例如渲染列表等
+- useTransition 用于性能优化, 适用于长时间任务, 例如网络请求/密集计算/渲染大量数据等
+- useTransition 将某些更新标记为 "过渡" 更新, 即降低某些更新的优先级, React 先处理高优先级的更新, 例如用户输入; 延迟处理 "过渡" 更新, 例如网络请求
 
 ```js
 const [isPending, startTransition] = useTransition();
@@ -486,37 +486,92 @@ const [isPending, startTransition] = useTransition();
 // isPending = false: 过渡结束
 ```
 
+案例
+
+```tsx
+import { Input, List } from "antd";
+import React, { useState, useTransition } from "react";
+
+interface Item {
+  id: number;
+  name: string;
+  address: string;
+}
+
+// chrome: 检查 -> 性能 -> CPU: 4 倍降速
+export function UseTransitionAntd() {
+  const [val, setVal] = useState("");
+  const [list, setList] = useState<Item[]>();
+  // 在不阻塞 UI 的情况下更新 state, 用于性能优化
+  const [isPending, startTransition] = useTransition();
+  const changeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    setVal(newVal);
+    fetch("/api/list?keyword=" + newVal)
+      .then((res) => res.json())
+      .then((res) => {
+        // setList(res.list); [!code --]
+        startTransition(() => {
+          // useTransition 类似防抖 (debounce): 连续触发事件, n 秒内函数只执行最后 1 次
+          setList(res.list);
+        });
+      });
+  };
+
+  return (
+    <div>
+      <Input value={val} onChange={changeHandler}></Input>
+      {isPending && <div>加载中...</div>}
+      <List
+        dataSource={list}
+        renderItem={(item) => (
+          <List.Item>
+            <List.Item.Meta title={item.name} description={item.address} />
+          </List.Item>
+        )}
+      />
+    </div>
+  );
+}
+```
+
 startTransition 必须是**同步**的
 
-```js
-// 错误
+::: code-group
+
+```js [案例 1]
+// startTransition 执行结束后更新状态, 错误
 startTransition(() => {
   setTimeout(() => {
-    window.history.pushState({}, "", "/");
-  }, 1000);
-});
+    setState(newVal);
+  }, 3000);
+}); // startTransition 执行结束, 但 setState(newVal) 未执行
 
-// 正确
+// startTransition 执行时更新状态, 正确
 setTimeout(() => {
+  // startTransition 执行时, 执行 setState(newVal)
   startTransition(() => {
-    window.history.pushState({}, "", "/");
+    setState(newVal);
   });
-}, 1000);
+}, 3000);
 ```
 
-```js
-// 错误
+```js [案例 2]
+// startTransition 执行结束后更新状态, 错误
 startTransition(async () => {
   await fetch("http://localhost:5173");
-  window.history.pushState({}, "", "/");
-});
+  setState(newVal);
+}); // startTransition 执行结束, 但 fetch 未返回, setState(newVal) 未执行
 
-// 正确
+// startTransition 执行时更新状态, 正确
 await fetch("http://localhost:5173");
+// startTransition 执行时, 执行 setState(newVal)
 startTransition(() => {
-  window.history.pushState({}, "", "/");
+  setState(newVal);
 });
 ```
+
+:::
 
 原理: useTransition 降低某些更新的优先级为 LowPriority
 
@@ -524,14 +579,9 @@ startTransition(() => {
 // React 的优先级
 const ImmediatePriority = 1; // 立即执行的优先级: 点击, 输入, ...
 const UserBlockingPriority = 2; // 用户阻塞的优先级: 滚动, 拖拽, ...
-const NormalPriority = 3; // 普通优先级: dom 渲染, 网络请求, ...
+const NormalPriority = 3; // 普通优先级: 渲染 DOM, 网络请求, ...
 const LowPriority = 4; // 低优先级
-const IdlePriority = 5; // 空闲优先级: console.log
-```
-
-```bash
-pnpm i mockjs
-pnpm i @types/mockjs -D
+const IdlePriority = 5; // 空闲优先级: console.log(), ...
 ```
 
 ## hook: useDeferredValue
