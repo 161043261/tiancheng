@@ -44,7 +44,6 @@ export default defineConfig({
   transformHead({ assets }) {
     const Iosevka = assets.find((_file) => /Iosevka-Regular\.\w+\.woff2/)!;
     const IosevkaBold = assets.find((_file) => /Iosevka-Bold\.\w+\.woff2/)!;
-    const YuantiSC = assets.find((_file) => /Yuanti-SC\.\w+\.ttf/)!;
     return [
       [
         "link",
@@ -65,17 +64,7 @@ export default defineConfig({
           type: "font/woff2",
           crossorigin: "",
         },
-      ],
-      [
-        "link",
-        {
-          rel: "preload",
-          href: YuantiSC,
-          as: "font",
-          type: "font/truetype",
-          crossorigin: "",
-        },
-      ],
+      ]
     ];
   },
 });

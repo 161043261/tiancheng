@@ -658,60 +658,130 @@ export function UseDeferredValueAntd() {
 
 useEffect 是 React 中处理副作用的钩子
 
-**纯函数, 副作用函数**
+### 纯函数, 副作用函数
 
 纯函数
 
 1. 输入决定输出: 相同的输入总是得到相同的输出
-2. 无副作用: 不会改变外部状态, 也不会依赖外部可变状态, 即纯函数不会影响外部的变量, 文件, 数据库...
+2. 无副作用: 不会改变外部状态, 也不依赖外部可变状态, 即纯函数不会影响外部的变量, 文件, 数据库...
 
 副作用函数: 会改变外部状态, 或依赖外部可变状态
 
-深拷贝
+### 如何深拷贝
 
 1. `JSON.parse(JSON.stringfy(obj));` 会丢失属性值为 undefined 的属性
-2. lodash cloneDeep
+2. lodash `cloneDeep`
 3. `window.structuredClone(obj);` 浏览器自带
 
-> effect (setup) 函数的执行时机
+```ts
+// effect 处理函数
+// destructor 清理函数
+// effect: () => void | destructor
 
-1. 组件渲染完成 (挂载) 后, 执行 effect (setup), 等价于 DidMount
-2. 组件更新 (依赖项更新) 前, 执行 destructor
-3. 组件更新 (依赖项更新) 后, 执行 effect (setup), 等价于 DidUpdate
-4. 组件卸载后, 执行 destructor
-
-```js
 // useEffect 无返回值
-useEffect(effect: () => void | Destructor, // setup
-dependencies?: Array);
+useEffect(
+  effect, // effect 处理函数, 返回一个 destructor 清理函数
+  dependencies, // 依赖项数组
+);
 ```
 
+> useEffect 的执行时机
+
+1. 组件挂载后, 执行 effect 处理函数 (类比 Vue 的 onMounted), 此时获取的到 DOM 元素
+2. 依赖项更新, 组件重新渲染后, 先执行 destructor 清理函数, 再执行 effect 处理函数 (类比 Vue 的 onUpdated)
+3. 组件卸载后, 执行 destructor 清理函数 (类比 Vue 的 onUnmounted), 此时获取不到 DOM 元素
+4. 如果 deps 依赖项数组为 undefined, 则每次组件重新渲染后, 都会执行 effect 处理函数
+5. 如果 deps 依赖项数组为 [] 空数组, 则 effect 处理函数只会在组件挂载后执行一次
+6. effect 处理函数和 destructor 清理函数都是**异步**执行的
+
 ## hook: useLayoutEffect
+
+```ts
+// effect 处理函数
+// destructor 清理函数
+// effect: () => void | destructor
+
+// useEffect 无返回值
+useLayoutEffect(
+  effect, // effect 处理函数, 返回一个 destructor 清理函数
+  dependencies, // 依赖项数组
+);
+```
+
+useLayoutEffect 在浏览器重绘前**同步**执行
 
 ```js
 useLayoutEffect(() => void | Destructor, // setup
 dependencies?: Array);
 ```
 
-> [!IMPORTANT]
+> [!important]
 > 对比 useEffect 和 useLayoutEffect
+
+|          | 重排/回流 reflow   | 重绘 repaint     |
+| -------- | ------------------ | ---------------- |
+| 触发原因 | 宽高等改变         | 颜色等改变       |
+| 开销     | 大                 | 小               |
+|          | 重排一定会触发重绘 | 重绘不会触发重排 |
 
 | 区别                | useLayoutEffect        | useEffect              |
 | ------------------- | ---------------------- | ---------------------- |
-| effect 函数执行时机 | 浏览器布局, 绘制前执行 | 浏览器布局, 绘制后执行 |
+| effect 函数执行时机 | 浏览器回流, 重绘前执行 | 浏览器回流, 重绘后执行 |
 | effect 函数执行方式 | 同步执行               | 异步执行               |
-| DOM 渲染            | 阻塞 DOM 渲染          | 不阻塞 DOM 渲染        |
+| DOM 渲染            | **阻塞 DOM 渲染**      | **不阻塞 DOM 渲染**    |
 
-- 异步的 useEffect 可能会导致闪烁, 同步的 useLayoutEffect 可以避免闪烁
-- useLayoutEffect 可以模拟生命周期钩子: componentDidMount, componentDidUpdate 和 componentWillUnmount 等同步方法
+useLayoutEffect 使用场景
+
+- 同步获取或修改 DOM 元素
+- 异步的 useEffect 可能会导致页面闪烁, 同步的 useLayoutEffect 可以避免页面闪烁
+- useLayoutEffect 可以模拟生命周期钩子
+
+```tsx
+import { useEffect, useLayoutEffect } from "react";
+import styled from "styled-components";
+
+const Block = styled.div`
+  width: 200px;
+  height: 200px;
+  background: lightpink;
+  opacity: 0;
+  transition: opacity 5s;
+`;
+
+const Block2 = styled(Block)`
+  background: lightblue;
+  position: absolute;
+  top: 300px;
+`;
+
+export function UseLayoutEffect() {
+  // 使用 useEffect, effect 异步执行, 有淡入动画
+  useEffect(() => {
+    const block = document.getElementById("block")!;
+    block.style.opacity = "1"; // 不透明度
+  }, []);
+  // 使用 useLayoutEffect, effect 同步执行, 没有淡入动画
+  useLayoutEffect(() => {
+    const block2 = document.getElementById("block2")!;
+    block2.style.opacity = "1"; // 不透明度
+  });
+
+  return (
+    <div>
+      <Block id="block">block</Block>
+      <Block2 id="block2">block2</Block2>
+    </div>
+  );
+}
+```
 
 ## hook: useRef
 
 useRef: 获取 DOM 元素, 数据存储
 
-```jsx
+```tsx
 // 获取 DOM 元素
-const divRef = useRef < HTMLDivElement > null;
+const divRef = useRef<HTMLDivElement>(null);
 <div ref={divRef}>HTMLDivElement</div>;
 ```
 
@@ -729,7 +799,7 @@ refValue.value;
 // refValue 是 Proxy 代理对象, 值改变时, 视图会重新渲染
 ```
 
-> [!IMPORTANT]
+> [!important]
 > 对比 useState 和 useRef
 
 ```js

@@ -16,22 +16,11 @@
   src: url("../../src/assets/Iosevka-Bold.woff2") format("woff2");
 }
 
-@font-face {
-  font-family: "YuantiSC Web";
-  font-display: swap;
-  /* font-weight: 400; */
-  font-stretch: normal;
-  font-style: normal;
-  src: url("../../src/assets/Yuanti-SC.ttf") format("truetype");
-}
-
 :root {
   --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "YuantiSC Web", "Yuanti SC", "PingFang SC",
-    "Microsoft YaHei", monospace !important;
+    "DejaVu Sans Mono", "PingFang SC", "Microsoft YaHei", monospace !important;
   --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "YuantiSC Web", "Yuanti SC", "PingFang SC",
-    "Microsoft YaHei", monospace !important;
+    "DejaVu Sans Mono", "PingFang SC", "Microsoft YaHei", monospace !important;
 }
 
 .VPImage {
