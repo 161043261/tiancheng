@@ -91,7 +91,7 @@ SFC, Single File Component 单文件组件
 - template 标签: 只能有一个
 - style 标签: 可以有多个
 
-> [!TIP]
+> [!tip]
 > 配置 VSCode 代码片段
 
 ```json
@@ -120,7 +120,7 @@ SFC, Single File Component 单文件组件
 
 ## 风格指南
 
-> [!TIP]
+> [!tip]
 > 风格: Vue2 选项式 Option API
 
 ```vue
@@ -140,7 +140,7 @@ export default {
 </script>
 ```
 
-> [!TIP]
+> [!tip]
 > 风格: setup 函数
 
 ```vue
@@ -166,7 +166,7 @@ export default {
 - 单向绑定: 模型 (数据) 改变 --> 视图 (页面) 改变. 例: {{ }} 插值; v-bind 指令
 - 双向绑定: 模型 (数据) 改变 <-> 视图 (页面) 改变. 例: v-model 指令, 常用于输入框
 
-> [!TIP]
+> [!tip]
 > 风格: setup 语法糖, 组合式 Composition API
 
 ```vue
@@ -192,7 +192,7 @@ const addCnt = () => {
 - v-once 性能优化, 只渲染一次
 - v-memo 性能优化, 缓存
 
-> [!CAUTION]
+> [!caution]
 > v-on 可以简写为 @
 >
 > v-bind 可以简写为 :
@@ -239,7 +239,7 @@ function clickHandler(ev: Event) {
 
 这里, 点击 button 子元素时, 事件会冒泡到 div 父元素, 触发 div 父元素的点击事件, 使用 .stop 修饰符阻止事件冒泡
 
-> [!TIP]
+> [!tip]
 > 事件传播分为 3 个阶段: 捕获阶段, 目标阶段和冒泡阶段
 
 | v-on 指令的修饰符       | 原生 JS                                                                                                                       |
@@ -330,7 +330,7 @@ for (const key in div) {
 console.log(str);
 ```
 
-> [!IMPORTANT]
+> [!important]
 > diff 算法
 
 - 没有 key: 替换, 新增, 删除性能差

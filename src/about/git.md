@@ -68,7 +68,7 @@ git reset --hard commitid # 回退到历史版本
 git revert HEAD           # 创建新提交, 撤销上一个提交
 ```
 
-> [!TIP]
+> [!tip]
 > 搭建本机 git 服务器
 
 ```bash
