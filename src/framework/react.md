@@ -176,13 +176,19 @@ export const ComponentDemo: React.FC = () => {
 };
 ```
 
-React 中应该将数组视为**只读**, 不要修改原数组, 不要使用 push(), pop() 等方法
+## Immutable Updates 状态不可变性
+
+> [!important] Immutable Updates 状态不可变性
+>
+> - 直接修改原对象/原数组, 可能不会触发重新渲染
+> - React 中, 建议将状态视为 "只读的"
+> - 不修改原对象/原数组, 而是返回一个新对象/新数组, 无需深层侦听, 可以提高性能
 
 | 操作 | 不使用                    | 使用                               |
 | ---- | ------------------------- | ---------------------------------- |
 | 插入 | push(), unshift()         | concat, [newHead, ...arr, newTail] |
 | 删除 | pop(), shift(), splice()  | filter(), slice(), toSpliced()     |
-| 替换 | splice(), arr[i] = newVal | map(),toSpliced(), with()          |
+| 替换 | splice(), arr[i] = newVal | map(), toSpliced(), with()         |
 | 排序 | reverse(), sort()         | toReversed(), toSorted()           |
 
 以下 4 个方法不会修改原数组, 返回一个新数组
@@ -192,28 +198,55 @@ React 中应该将数组视为**只读**, 不要修改原数组, 不要使用 pu
 - toSpliced(): 指定位置插入删除
 - with(): 指定位置替换
 
-> react 中, 所有的 hook 都必须在组件的顶层调用
+> [!important]
+> React 中, 所有的 hook (useXxx 函数) 都必须在组件的顶层调用
 
 ## hook: useState
 
 ```js
-// setState 是异步更新的, 可以提升性能
+// setState 是异步更新的, 可以提高性能
 // 调用 setState 异步更新 state 值时, 会导致组件重新渲染
-const [state, setState] = useState(initialState);
+const [state /** 状态 */, setState /** 更新状态的函数 */] =
+  useState(initialState | () => initialState /** 初始状态 */);
 ```
 
-> [!IMPORTANT]
-> 对比 `setState(newVal)` 和 `setState((prev) => newVal)`
+- `const [state, setState] = useState(initialState | () => initialState);` 中, setState 是异步的, 可以提高性能
+- 多次传入相同的 newVal 调用 `setState(newVal)` 时, React 屏蔽后续更新, 即自带防抖功能
+- 对比 `setState(newVal)` 和 `setState((preVal) => newVal)`
 
-```js
-setState(curr + 1); // curr: 当前渲染周期中 state 的值
-setState((prev) => prev + 1); // prev: 上一个渲染周期中 state 的值
+```tsx
+import { useState } from "react";
+
+export default function SetState() {
+  const [curVal, setCurVal] = useState(0);
+  const handleClick = () => {
+    setCurVal(curVal + 1);
+    setCurVal(curVal + 1); // 被屏蔽, 不会更新 curVal
+    setCurVal(curVal + 1); // 被屏蔽, 不会更新 curVal
+    console.log(curVal); // 先于 3 个 setCurVal 执行
+  };
+
+  const handleClick2 = () => {
+    // 传递一个更新函数
+    setCurVal((preVal) => preVal + 1);
+    setCurVal((preVal) => preVal + 1);
+    setCurVal((preVal) => preVal + 1);
+  };
+
+  return (
+    <>
+      <h1>Current Value: {curVal}</h1>
+      <button onClick={handleClick}>curVal += 1</button>
+      <button onClick={handleClick2}>curVal += 3</button>
+    </>
+  );
+}
 ```
 
 ## hook: useReducer
 
 - useReducer 可用于基本类型和引用类型, 集中式状态管理, 适用于复杂类型, 例如数组或对象 (类似于 Vue 的 reactive, 但 reactive 只能用于引用类型)
-- useState 可用于基本类型和引用类型 (类似于 Vue 的 ref, ref 可用于基本类型和引用类型)
+- useState 也可用于基本类型和引用类型 (类似于 Vue 的 ref, ref 可用于基本类型和引用类型)
 
 ```js
 const [state, dispatch] = useReducer(
@@ -672,7 +705,11 @@ export default defineConfig({
   // 基于 postcss-module
   css: {
     modules: {
-      // 修改 css-module 类名规则, 可以使用 xxxYyy, 也可以使用 xxx-yyy
+      // 修改 css-module 类名规则
+      // dashes: 仅将 kebab-case 的类名转为 camelCase 的类名, 并保留原类名
+      // dashesOnly: 仅将 kebab-case 的类名转为 camelCase 的类名, 并删除原类名
+      // camelCase: 将所有非 camelCase 的类名转换为 camelCase 的类名, 并保留原类名
+      // camelCaseOnly: 将所有非 camelCase 的类名转换为 camelCase 的类名, 并删除原类名
       localsConvention: "dashes",
       // 修改编译后的类名规则: name 源文件名, local 原类名
       generateScopedName: "[name]__[local]__[hash:base64:5]",
@@ -730,7 +767,7 @@ export function App() {
 
 :::
 
-## styled (CSS-IN-JS)
+## styled (CSS-in-JS)
 
 ```bash
 pnpm install styled-components -D
@@ -738,12 +775,9 @@ pnpm install styled-components -D
 
 ::: code-group
 
-```tsx [CssInJs.tsx]
-import { ReactNode } from "react";
-import { createPortal } from "react-dom";
-import styled, { createGlobalStyle, keyframes } from "styled-components";
-
-const Button = styled.button<{ success?: boolean }>`
+```tsx [src/pages/Styled.tsx]
+// Button 的 CSS 类名是 JS 随机生成的, 避免类名冲突
+const ColoredBtn = styled.button<{ success?: boolean }>`
   ${(props) =>
     props.success ? "background: lightblue" : "background: lightgreen"};
   display: flex;
@@ -756,30 +790,30 @@ const Button = styled.button<{ success?: boolean }>`
 `;
 
 // styled 继承
-const ErrorButton = styled(Button)`
-  background: lightpink;
-`;
-
-const LinkButton = styled(Button)`
+const AnchorBtn = styled(ColoredBtn)`
   text-decoration: underline;
   background: transparent;
 `;
 
 // styled 属性
-const Input = styled.input.attrs({
+const NumberInput = styled.input.attrs({
   type: "number",
   defaultValue: 1,
 })`
-  margin-top: 10px;
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
 `;
 
-const Input2 = styled.input.attrs<{ defaultValue: number }>((props) => {
+const NumberInput2 = styled.input.attrs<{ defaultValue: number }>((props) => {
   return {
     type: "number",
     defaultValue: props.defaultValue,
   };
 })`
-  margin-top: 10px;
+  padding: 10px;
+  margin: 10px;
+  border-radius: 10px;
 `;
 
 // styled 全局属性
@@ -805,6 +839,7 @@ const xMove = keyframes`
   transform: translateX(0);
 }
 `;
+
 const Box = styled.div`
   position: fixed;
   left: 10%;
@@ -816,28 +851,37 @@ const Box = styled.div`
   animation: ${xMove} 3s ease infinite;
 `;
 
-export function CssInJS(props: { children?: ReactNode }) {
+const StyledDemo: React.FC<{
+  children?: ReactNode;
+}> = (props) => {
   return (
     <main style={{ display: "flex", flexDirection: "column" }}>
-      <Button>{props.children ?? "默认文本"}</Button>
-      <Button success>{props.children ?? "成功文本"}</Button>
-      <ErrorButton>{props.children ?? "失败文本"}</ErrorButton>
-      <LinkButton>{props.children ?? "链接文本"}</LinkButton>
-      <Input defaultValue={30}></Input>
-      <Input2 defaultValue={30}></Input2>
+      <ColoredBtn>{props.children ?? "默认文本"}</ColoredBtn>
+      <AnchorBtn success>{props.children ?? "链接文本"}</AnchorBtn>
+      <NumberInput></NumberInput>
+      <NumberInput2 defaultValue={30}></NumberInput2>
       {/* 注册全局样式 */}
       <GlobalStyle></GlobalStyle>
       {createPortal(<Box></Box>, document.body)}
     </main>
   );
-}
+};
+
+export default StyledDemo;
 ```
 
-```tsx [App.tsx]
-import { CssInJs } from "./CssInJs";
+```tsx [src/router/index.tsx]
+const router = createBrowserRouter([
+  {
+    path: "/styled",
+    element: <StyledDemo>Styled Component</StyledDemo>,
+  },
+]);
 
-<CssInJs>这是 styled</CssInJs>;
+export default router;
 ```
+
+:::
 
 ## styled 原理: ES6 模板字符串
 
