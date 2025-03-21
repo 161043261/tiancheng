@@ -512,7 +512,7 @@ export function UseTransitionAntd() {
       .then((res) => {
         // setList(res.list); [!code --]
         startTransition(() => {
-          // useTransition 类似防抖 (debounce): 连续触发事件, n 秒内函数只执行最后 1 次
+          // useTransition 有类似防抖 (debounce) 的功能: 连续触发事件, n 秒内函数只执行最后 1 次
           setList(res.list);
         });
       });
@@ -535,7 +535,8 @@ export function UseTransitionAntd() {
 }
 ```
 
-startTransition 必须是**同步**的
+> [!warning]
+> startTransition 必须是**同步**的
 
 ::: code-group
 
@@ -573,7 +574,7 @@ startTransition(() => {
 
 :::
 
-原理: useTransition 降低某些更新的优先级为 LowPriority
+原理: useTransition 将某些状态的更新标记为低优先级
 
 ```js
 // React 的优先级
@@ -584,17 +585,74 @@ const LowPriority = 4; // 低优先级
 const IdlePriority = 5; // 空闲优先级: console.log(), ...
 ```
 
-## hook: useDeferredValue
+## 性能优化 hook: useDeferredValue
 
-useDeferredValue 根据设备的情况, 延迟某些状态的更新, 直到主渲染任务完成, 特别适用于频繁更新的内容, 例如输入框. 避免频繁更新导致的性能问题
+useDeferredValue 根据设备的情况, 延迟**某个值**的更新 (将该值的更新标记为低优先级), 适用于频繁更新的值, 例如输入框的值, 避免频繁更新导致的性能问题
 
 > useTransition 和 useDeferredValue 的区别
 
-1. 相同点: 都是延迟更新, 用于性能优化
-2. useTransition 关注状态的过渡, 例如渲染列表, useDeferredValue 关注值的延迟更新, 例如输入框
+1. useTransition 和 useDeferredValue 都是延迟更新, 用于性能优化
+2. useTransition 和 useDeferredValue 都有类似防抖 (debounce) 的功能: 连续触发事件, n 秒内函数只执行最后 1 次
+3. useTransition 关注状态的过渡, 例如渲染大列表, 并且提供了过渡标识 `isPending`; useDeferredValue 关注某个值的延迟更新, 例如输入框的值
 
-- useTransition, useDeferredValue 类似防抖 (debounce): 连续触发事件, n 秒内函数只执行最后 1 次 (回城)
-- useDeferredValue 不是防抖, 防抖有确定的延迟时间, useDeferredValue 没有确定的延迟时间, 而是根据设备的情况, 延迟某些状态的更新, 如果设备情况好, 那么延迟几乎是无感的
+- useDeferredValue 不是防抖, 防抖有确定的延迟时间, useDeferredValue 没有确定的延迟时间, 而是根据设备的情况, 延迟某个值的更新
+
+```tsx
+import { Input, List } from "antd";
+import { useDeferredValue, useState } from "react";
+import mockjs from "mockjs";
+
+interface Item {
+  id: number;
+  name: number;
+  address: string;
+}
+
+// chrome: 检查 -> 性能 -> CPU: 4 倍降速
+export function UseDeferredValueAntd() {
+  const [val, setVal] = useState("");
+  const list: Item[] = mockjs.mock({
+    "addrlist|1000": [
+      {
+        "id|+1": 1,
+        name: "@natural", // 数字
+        address: "@county(true)",
+      },
+    ],
+  }).addrlist;
+  console.log(list.length);
+  const deferredVal = useDeferredValue(val);
+  const isDeferred = deferredVal !== val;
+  const findItem = () => {
+    // useTransition, useDeferredValue 都有类似防抖 (debounce) 的功能: 连续触发事件, n 秒内函数只执行最后 1 次
+    // 输入框, 用户连续输入 1, 2, 3
+    // useDeferredValue 不会对 1 搜索一次, 对 12 搜索一次, 对 123 再搜索一次
+    // 而是延迟的只对 123 搜索一次, 性能优化
+    console.log("val:", val);
+    console.log("deferredVal:", deferredVal);
+    console.log("isDeferred:", isDeferred);
+    return list.filter((item) => item.name.toString().includes(deferredVal)); // 搜索
+  };
+  return (
+    <div>
+      <Input value={val} onChange={(e) => setVal(e.target.value)}></Input>
+      <List
+        style={{
+          opacity: isDeferred ? 0.1 : 1,
+          // ease-in-out 慢 -> 快 -> 慢
+          transition: "opacity 1s ease-in-out",
+        }}
+        dataSource={findItem()}
+        renderItem={(item: Item) => (
+          <List.Item>
+            <List.Item.Meta title={item.name} description={item.address} />
+          </List.Item>
+        )}
+      />
+    </div>
+  );
+}
+```
 
 ## hook: useEffect
 
