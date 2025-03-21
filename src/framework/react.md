@@ -692,7 +692,7 @@ useEffect(
 1. 组件挂载后, 执行 effect 处理函数 (类比 Vue 的 onMounted), 此时获取的到 DOM 元素
 2. 依赖项更新, 组件重新渲染后, 先执行 destructor 清理函数, 再执行 effect 处理函数 (类比 Vue 的 onUpdated)
 3. 组件卸载后, 执行 destructor 清理函数 (类比 Vue 的 onUnmounted), 此时获取不到 DOM 元素
-4. 如果 deps 依赖项数组为 undefined, 则每次组件重新渲染后, 都会执行 effect 处理函数
+4. 如果不传入 deps, deps 依赖项数组为 undefined, 则每次组件重新渲染后, 都会执行 effect 处理函数
 5. 如果 deps 依赖项数组为 [] 空数组, 则 effect 处理函数只会在组件挂载后执行一次
 6. effect 处理函数和 destructor 清理函数都是**异步**执行的
 
@@ -779,23 +779,16 @@ export function UseLayoutEffect() {
 
 ## hook: useRef
 
-```js
-// React
-const refValue = useRef(initialValue);
-refValue.current;
-// React 的 useRef() 返回的 refValue 不是响应式的
-// refValue 是普通对象, 改变 refValue.current 值时, 视图不会重新渲染
-// 不要读写 ref.current, 否则会使得组件行为不可预测
-
-// Vue
-const refValue = ref(initialValue);
-refValue.value;
-// Vue 的 ref() 返回的 refValue 是响应式的
-// refValue 是 Proxy 代理对象, 改变 refValue.value 值时, 视图会重新渲染
+```ts
+const [state /* 状态 */, setState] = useState(initialVal);
+const refVal /* 普通 JS 对象 */ = useRef(initialVal);
 ```
 
-> [!important]
-> 组件每次重新渲染, 组件函数会重新执行, 所有的局部变量 (例如 num) 都会重新初始化
+- React 的 useRef 返回的 refVal 是普通 JS 对象, 不是 state 状态 (没有对应的 setState); 改变 refVal.current 值时, 不会触发组件重新渲染
+- Vue 的 ref 返回的 refVal 是 Proxy 代理对象; 改变 refVal.value 值时, 会触发组件重新渲染
+- 组件每次重新渲染, 组件函数会重新执行, 所有的局部变量都会重新初始化
+- useRef 只会在组件挂载时调用 1 次, 组件重新渲染时, 不会重新调用 useRef
+- useRef 的返回值不能作为 useEffect 等其他 hooks 的 dependencies 中的依赖项, 因为 useRef 返回普通 JS 对象, 不是 state 状态 (没有对应的 setState)
 
 ### 案例
 
@@ -809,9 +802,11 @@ refValue.value;
 
 - const [state, setState] = useState(initialState | () => initialState)
 - setState 异步更新 state 值
-- 使用 `setCnt(val => { refNum.current = val + 1; return val + 1; })` 可以解决问题 2
+- `setCnt(val => { refNum.current = val + 1; return val + 1; })` 可以解决问题 2
 
-```tsx
+::: code-group
+
+```tsx [案例 1]
 import React, { useRef, useState } from "react";
 
 const UseRefDemo: React.FC = () => {
@@ -823,6 +818,7 @@ const UseRefDemo: React.FC = () => {
     num = cnt;
     refNum.current = cnt;
   };
+
   return (
     <div>
       <button onClick={handleClick}>++</button>
@@ -836,64 +832,141 @@ const UseRefDemo: React.FC = () => {
 };
 ```
 
-```js
-const [state, setState] = useState(initializer);
+```tsx [案例 2]
+export default function UseRefDemo2() {
+  // 组件每次重新渲染时, timer 都会重新初始化为 null
+  // let timer: null | NodeJS.Timeout = null;
+  const timer = useRef<NodeJS.Timeout | null>(null);
+  const [cnt, setCnt] = useState(0);
+  const handleStart = () => {
+    timer.current = setInterval(() => {
+      setCnt((cnt) => cnt + 1);
+    }, 500);
+  };
+  const handleEnd = () => {
+    console.log(timer);
+    if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+  };
+
+  return (
+    <div>
+      <div>cnt: {cnt}</div>
+      <button onClick={handleStart}>Start counter</button>
+      <button onClick={handleEnd}>End counter</button>
+    </div>
+  );
+}
 ```
 
-- setState 是异步更新的, 可以提升性能
-- 调用 setState 异步更新 state 值时, 会导致组件重新渲染
-- useState 返回的 state 可以作为 useEffect 等其他 hooks 的依赖项. 通过 setState 函数, state 是一个响应式对象
-
-```js
-const refValue = useRef(initialValue);
-```
-
-1. 组件重新渲染时, 不会重新调用 useRef
-2. 更新 prevCnt.current 属性值时, 不会导致组件重新渲染
-3. 除了初始化外 (组件函数体内) , 不要在渲染时读写 refValue.current, 否则会使得组件的行为变得不可预测
-4. useRef 返回的 refValue 不能作为 useEffect 等其他 hooks 的依赖项, refValue 不是一个响应式对象, 只是一个普通对象
-5. React 的 useRef 不能直接获取子组件, 需要使用 forwardRef (Vue 的 ref 可以直接获取子组件)
+:::
 
 ## hook: useImperativeHandle
 
-父组件可以获取子组件的 DOM, 访问子组件的属性, 方法和状态, 类似 Vue 的 defineExpose
+Imperative Handle 命令式句柄
+
+类似 Vue 的 defineExpose, 父组件可以获取子组件的 DOM 节点, 访问子组件的属性, 调用子组件的方法
 
 ```js
-useImperativeHandle(parentRef, () => {
-  return {
-    // 暴露给父组件的属性, 方法和状态
-  };
-}, dependencies?: Array);
+useImperativeHandle(
+  ref, // 父组件通过子组件 props 传递的 ref 对象
+  () => {
+    return {}; // 返回暴露的属性, 方法
+  } /** createHandle */,
+  dependencies, // 依赖项数组, 可选
+);
 ```
 
 useImperativeHandle 的执行时机, 同 useEffect, useLayoutEffect
 
-```js
-// 不传入第三个参数 dependencies
-// 则组件挂载时执行一次; 状态更新导致组件重新渲染时, 也会执行
-useImperativeHandle(ref, () => {});
+1. 组件挂载后, 执行 createHandle
+2. 依赖项更新, 组件重新渲染后, 执行 createHandle
+3. 如果不传入 deps, deps 依赖项数组为 undefined, 则每次组件重新渲染后, 都会执行 createHandle
+4. 如果 deps 依赖项数组为 [] 空数组, 则 createHandle 只会在组件挂载后执行一次
 
-// 传入第三个参数 dependencies 为一个空数组
-// 则只在组件挂载时执行一次
-useImperativeHandle(ref, () => {}, []);
+::: code-group
 
-// 传入第三个参数 dependencies 为一个非空数组
-// 则组件挂载时执行一次, 依赖项更新导致导致组件重新渲染时, 也会执行
-```
-
-```js
-// React18
-const Child = forwardRef<T,>((props, ref) => {
-  useImperativeHandle(ref, () => exposeObj /* initializer */, dependencies);
-  return <div>Child</div>
-});
-
-// React19
-const Child = ({ ref }: { ref: Ref<T> } /* props */) => {
-  useImperativeHandle(ref, () => exposeObj /* initializer */, dependencies);
-  return <div>Child</div>
+```tsx [案例 1]
+const Child = ({ ref }: { ref: React.Ref<HTMLDivElement> } /** props */) => {
+  return <div ref={ref}>Child</div>;
 };
+
+// 父组件获取子组件的 DOM 节点
+export function UseImperativeHandleDemo() {
+  const childRef = useRef<HTMLDivElement>(null /** initialVal */);
+  const getChildDOM = () => {
+    console.log(childRef.current);
+  };
+  return (
+    <div>
+      <button type="button" onClick={getChildDOM}>
+        获取子组件的 DOM 节点
+      </button>
+      <Child ref={childRef} />
+    </div>
+  );
+}
 ```
+
+```tsx [案例 2]
+interface ChildRef {
+  cnt: number;
+  addCnt: () => void;
+}
+
+const Child = ({ ref }: { ref: React.Ref<ChildRef> }) => {
+  const [cnt, setCnt] = useState(0);
+  const [flag, setFlag] = useState(false);
+  // 类似 Vue 的 defineExpose
+  useImperativeHandle(
+    ref, // 父组件通过子组件 props 传递的 ref 对象
+    () => {
+      // 返回暴露的属性, 方法
+      console.log("Invoke createHandle");
+      return {
+        cnt,
+        addCnt: () => setCnt(cnt + 1),
+      }; // createHandle
+    },
+    [cnt], // 依赖项数组
+  );
+
+  return (
+    <div>
+      <div>flag: {flag ? "true" : "false"}</div>
+      <div>cnt: {cnt}</div>
+      <button type="button" onClick={() => setFlag(!flag)}>
+        setFlag
+      </button>
+      <button type="button" onClick={() => setCnt(cnt + 1)}>
+        addCnt
+      </button>
+    </div>
+  );
+};
+
+export function UseImperativeHandleDemo2() {
+  const childRef = useRef<ChildRef>(null);
+  const printChildRef = () => {
+    console.log(childRef.current);
+  };
+  return (
+    <div>
+      <button type="button" onClick={printChildRef}>
+        printChildRef
+      </button>
+      <button type="button" onClick={() => childRef.current?.addCnt()}>
+        addCnt
+      </button>
+      <Child ref={childRef}></Child>
+    </div>
+  );
+}
+```
+
+:::
 
 ## hook: useContext
 
