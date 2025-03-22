@@ -459,7 +459,7 @@ export function useHistory(): [
 ```
 
 ```tsx [使用 useHistory]
-export function UseSyncExternalStoreDemo2() {
+export function UseSyncExternalStoreDemo() {
   const [url, push, replace] = useHistory();
   return (
     <div>
@@ -1019,7 +1019,7 @@ export function UseContextDemo() {
       <button type="button" onClick={() => setCnt(cnt + 1)}>
         Grandparent add
       </button>
-      {/* .Provider 可省略, props 键必须是 value */}
+      {/* props 键必须是 value */}
       <cntCtx.Provider value={{ cnt: _cnt, setCnt: _setCnt }}>
         <cntCtx.Provider value={{ cnt, setCnt }}>
           {/* 对于同一个 context (这里是 cntContext), 内层 context 的值会覆盖外层 context 的值 (这里 cnt 的初始值为 0) */}
@@ -1031,31 +1031,91 @@ export function UseContextDemo() {
 }
 ```
 
-==================================================
+## 性能优化 API: React.memo
 
-## 性能优化 API React.memo
+React.memo 用于性能优化, 避免不必要的重新渲染; 缓存上一次的渲染结果, 仅当组件的 props, state 或 useContext 改变时才会重新渲染
 
-React.memo 用于性能优化, 缓存上一次的渲染结果, 父组件重新渲染不会导致子组件也重新渲染, 子组件的 props, state 或 useContext 改变时才会重新渲染, 避免不必要的渲染
-
-> [!important]
-> React 组件重新渲染的条件
+### 触发组件重新渲染的条件
 
 1. 组件的 props 改变
 2. 组件的 state 改变
 3. useContext 改变
-4. 父组件重新渲染, 会导致子组件也重新渲染
+4. 父组件重新渲染时, 即使子组件的 props, state 或 useContext 未改变, 子组件也会重新渲染; 使用 React.memo 包裹子组件, 避免不必要的重新渲染
 
-React 默认父组件重新渲染时, 即使子组件的 props, state 或 useContext 未改变, 子组件也会重新渲染. 可以使用 React.memo 包裹子组件, 避免不必要的渲染
+```tsx
+interface User {
+  name: string;
+}
 
-```jsx
-const Child = (props) => <div></div>;
-// 使用 React.memo 包裹子组件, 避免不必要的渲染
-const Child = memo((props) => <div></div>);
+const Boy = (props: { user: User }) => {
+  console.log("Boy is rendering");
+  const { user } = props;
+  return <h1>name: {user.name}</h1>;
+};
+
+// 使用 React.memo 包裹子组件, 避免不必要的重新渲染
+const Girl = React.memo((props: { user: User }) => {
+  console.log("Girl is rendering");
+  const { user } = props;
+  return <h1>name: {user.name}</h1>;
+});
+
+export function MemoDemo() {
+  const [inputVal, setInputVal] = useState("");
+  const [user, setUser] = useState({
+    name: "whoami",
+  });
+  return (
+    <div>
+      <input value={inputVal} onChange={(ev) => setInputVal(ev.target.value)} />
+      <button onClick={() => setUser({ ...user, name: inputVal })}>
+        更改子组件的 props
+      </button>
+      <Boy user={user}></Boy>
+      <Girl user={user}></Girl>
+    </div>
+  );
+}
 ```
 
-## 性能优化 hook: useMemo
+## 性能优化 hook: useMemo (Vue computed)
 
-useMemo 用于性能优化的 hook, 缓存计算值 (函数的返回值) , 仅当依赖项改变时才会重新计算, 类似 Vue 的 computed 计算属性, 返回缓存的计算值 (函数的返回值)
+- `useMemo(computeFn /* 计算函数 */, dependencies /*  依赖项数组, 必传 */);`
+- useMemo 类似 Vue 的 computed 计算属性: 缓存计算结果, 仅当依赖项改变时才会重新计算 (脏值检测)
+- useMemo 用于性能优化, 避免重新渲染时不必要的重新计算, 缓存计算结果 (函数的返回值), 仅当依赖项改变时才会重新计算
+- 如果依赖项数组是空数组, 则只会在组件挂载后计算一次
+
+```tsx
+const UseMemoDemo: React.FC = () => {
+  const [inputVal, setInputVal] = useState("");
+  const [nums, setNums] = useState([1, 2]);
+  const handleChange = (ev: ChangeEvent<HTMLInputElement>) =>
+    setInputVal(ev.target.value);
+  // calcSum 未使用 useMemo, 每次重新渲染时都会重新计算两数的和
+  const calcSum = () => {
+    console.log("Calculating sum");
+    return nums[0] + nums[1];
+  };
+  // computedProduct 使用 useMemo, 仅当依赖项改变时才会重新计算两数的乘积
+  const computedProduct = useMemo<number>(() => {
+    console.log("Computing product");
+    return nums[0] * nums[1];
+  }, [nums]);
+  const addNum0 = () => setNums([++nums[0], nums[1]]);
+  const addNum1 = () => setNums([nums[0], ++nums[1]]);
+  return (
+    <div>
+      {/* 修改 inputVal 状态时, 触发重新渲染 */}
+      <input type="text" value={inputVal} onChange={handleChange} />
+      <div>nums: {JSON.stringify(nums)}</div>
+      <div>sum: {calcSum()}</div>
+      <div>product: {computedProduct}</div>
+      <button onClick={addNum0}>addNum0</button>
+      <button onClick={addNum1}>addNum1</button>
+    </div>
+  );
+};
+```
 
 ## 性能优化 hook: useCallback
 
