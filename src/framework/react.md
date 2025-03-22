@@ -40,8 +40,6 @@ function App() {
 
 ## babel, swc
 
-### babel
-
 1. es6 => es5: 将新版本的 js 语法转换为旧版本的 js 语法
 2. Polyfill: 垫片, 使得新功能在旧浏览器中可用
 3. jsx => js: 将 jsx 语法转换为 js 语法
@@ -1033,14 +1031,17 @@ export function UseContextDemo() {
 
 ## 性能优化 API: React.memo
 
-React.memo 用于性能优化, 避免不必要的重新渲染; 缓存上一次的渲染结果, 仅当组件的 props, state 或 useContext 改变时才会重新渲染
-
 ### 触发组件重新渲染的条件
 
 1. 组件的 props 改变
 2. 组件的 state 改变
 3. useContext 改变
-4. 父组件重新渲染时, 即使子组件的 props, state 或 useContext 未改变, 子组件也会重新渲染; 使用 React.memo 包裹子组件, 避免不必要的重新渲染
+4. 父组件重新渲染时, 子组件也会重新渲染; 使用 React.memo 包裹子组件, 如果子组件的 props 没有改变则跳过子组件的重新渲染
+
+### 性能优化 API: React.memo
+
+- React.memo 用于性能优化, 缓存上一次的渲染结果, 避免不必要的重新渲染
+- React.memo 对组件的 props 进行浅比较 (不关心 state 和 useContext), 如果 props 没有改变则跳过重新渲染
 
 ```tsx
 interface User {
@@ -1080,9 +1081,9 @@ export function MemoDemo() {
 
 ## 性能优化 hook: useMemo (Vue computed)
 
-- `useMemo(computeFn /* 计算函数 */, dependencies /*  依赖项数组, 必传 */);`
-- useMemo 类似 Vue 的 computed 计算属性: 缓存计算结果, 仅当依赖项改变时才会重新计算 (脏值检测)
-- useMemo 用于性能优化, 避免重新渲染时不必要的重新计算, 缓存计算结果 (函数的返回值), 仅当依赖项改变时才会重新计算
+- `const computedVal = useMemo(computeFn /* 计算函数 (工厂函数) */, deps /* 依赖项数组, 必传 */);`
+- useMemo 类似 Vue 的 computed 计算属性: 缓存计算结果, 仅当依赖项改变时才会重新计算
+- useMemo 用于性能优化, 返回缓存的计算结果 (computeFn 的返回值 computedVal), 避免重新渲染时不必要的重新计算, 仅当依赖项改变时才会重新计算
 - 如果依赖项数组是空数组, 则只会在组件挂载后计算一次
 
 ```tsx
@@ -1105,7 +1106,7 @@ const UseMemoDemo: React.FC = () => {
   const addNum1 = () => setNums([nums[0], ++nums[1]]);
   return (
     <div>
-      {/* 修改 inputVal 状态时, 触发重新渲染 */}
+      {/* 修改输入框的值 (inputVal 状态) 时, 触发重新渲染 */}
       <input type="text" value={inputVal} onChange={handleChange} />
       <div>nums: {JSON.stringify(nums)}</div>
       <div>sum: {calcSum()}</div>
@@ -1119,60 +1120,134 @@ const UseMemoDemo: React.FC = () => {
 
 ## 性能优化 hook: useCallback
 
-useCallback 用于性能优化的 hook, 缓存回调函数, 避免回调函数的重复创建, 返回一个缓存的回调函数
+- `const cachedCallback = useCallback(callback /* 回调函数 */, deps /* 依赖项数组, 必传 */)`
+- useCallback 用于性能优化, 返回缓存的回调函数 cachedCallback, 避免重新渲染时, callback 不必要的重新创建, 仅当依赖项改变时才会重新创建 callback
 
-对比 useMemo 和 useCallback
+### 案例
 
-1. 相同点: useMemo 和 useCallback 的参数相同
-2. 不同点: useMemo 返回缓存的计算值 (函数的返回值) , useCallback 返回缓存的回调函数
+```tsx
+import { ChangeEvent, useCallback, useState } from "react";
 
-```js
-function useMemo<T>(factory: () => T, dependencies: Array): T;
-function useCallback<T extends Function>(callback: T, dependencies: Array): T;
+const wm = new WeakMap();
+let cbCnt = 1;
+let cachedCbCnt = 1;
+
+export function UseCallbackDemo() {
+  console.log("UseCallbackDemo is Invoking");
+  const [inputVal, setInputVal] = useState("");
+  // 每次重新渲染时都会重新创建 cb
+  const cb = (ev: ChangeEvent<HTMLInputElement>) => {
+    console.log(ev);
+  };
+  if (!wm.has(cb)) {
+    wm.set(cb, cbCnt++);
+  }
+  const cachedCb = useCallback(
+    (ev: ChangeEvent<HTMLInputElement>) => {
+      setInputVal(ev.target.value);
+    },
+    [] /* 依赖项数组是空数组, 只会在组件挂载后创建一次 cachedCb */,
+  );
+  if (!wm.has(cachedCb)) {
+    wm.set(cachedCb, cachedCbCnt++);
+  }
+
+  console.log("wm:", wm);
+  return (
+    <div>
+      <input
+        type="text"
+        value={inputVal}
+        onChange={(ev) => {
+          cb(ev);
+          achedCb(ev);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### 对比 useMemo 和 useCallback
+
+- `const computedVal = useMemo(computeFn /* 计算函数 (工厂函数) */, deps /* 依赖项数组, 必传 */);`
+- `const cachedCallback = useCallback(callback /* 回调函数 */, deps /* 依赖项数组, 必传 */);`
+- useMemo 返回缓存的计算结果 (computeFn 的返回值 computedVal)
+- useCallback 返回缓存的回调函数 cachedCallback
+
+### React.memo, useCallback 综合案例
+
+```tsx
+import React, { ChangeEvent, useCallback, useState } from "react";
+
+const Child = React.memo(({ callback }: { callback: () => void }) => {
+  console.log("Child is rendering");
+  return <button onClick={callback}>I'm Child!</button>;
+});
+
+const MemoUseCallback: React.FC = () => {
+  const [inputVal, setInputVal] = useState("");
+  const changeHandler = (ev: ChangeEvent<HTMLInputElement>) =>
+    setInputVal(ev.target.value);
+  // 修改输入框的值 (inputVal 状态) 时, 触发父组件重新渲染
+  // 如果不使用 useCallback, 则父组件重新渲染时重新创建 callback
+  // 子组件的 props 改变, 触发子组件重新渲染
+  // const callback = () => console.log("Goodbye Happiness");
+  // 依赖项数组是空数组, 只会在组件挂载后创建一次 callback
+  const callback = useCallback(() => console.log("Goodbye Happiness"), []);
+  return (
+    <div>
+      <input type="text" value={inputVal} onChange={changeHandler} />
+      <Child callback={callback} />
+    </div>
+  );
+};
 ```
 
 ## 调试用 hook: useDebugValue
 
-检查 -> Components
+`const debugValue = useDebugValue(value, formatter? /* 格式化函数 */)`
 
 ```tsx
-// 自定义 hook
-const useCookie = (name: string, initialValue: string = "") => {
+const useCookie = (key: string, defaultValue: string = "") => {
   const getCookie = () => {
-    const match = document.cookie.match(new RegExp(`${name}`));
-    return match ? match[2] : initialValue;
+    const match = document.cookie.match(new RegExp(`${key}`));
+    // 格式 key=value
+    return match ? match[2] : defaultValue;
   };
-  const [cookieState, setCookie] = useState(getCookie());
+  const [cookieState, setCookieState] = useState(getCookie());
 
-  useDebugValue(cookieState, (val) => {
-    return `格式化输出: ${cookieState}, ${val}`;
-  });
+  useDebugValue(
+    cookieState,
+    (val) => {
+      return `formatted: cookieState: ${cookieState}, val: ${val}`;
+    } /** formatter */,
+  );
 
-  const updateCookie = (newVal: string) => {
-    document.cookie = `${name}=${newVal}`; // update cookie
-    setCookie(newVal); // update state
+  const setCookie = (newVal: string) => {
+    document.cookie = `${key}=${newVal}`;
+    setCookieState(newVal); // 同步更新 cookieState 状态
   };
 
-  const deleteCookie = () => {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`; // 过期删除
-    setCookie(""); // update state
+  const delCookie = () => {
+    // 过期删除
+    document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    setCookie(""); // 同步删除 cookieState 状态
   };
 
-  return [cookieState, updateCookie, deleteCookie] as const;
+  return [cookieState, setCookie, delCookie] as const;
 };
 
 export function UseDebugValueDemo() {
-  const [cookieState, updateCookie, deleteCookie] = useCookie(
-    "key" /* name */,
-    "value" /* initialValue */,
+  const [cookieState, setCookie, delCookie] = useCookie(
+    "name" /* key */,
+    "defaultName" /* defaultValue */,
   );
   return (
-    <main style={itemStyle}>
+    <main>
       <div>cookieVal: {cookieState}</div>
-      <button onClick={() => updateCookie(cookieState + "!")}>
-        更新 cookie
-      </button>
-      <button onClick={() => deleteCookie()}>删除 cookie</button>
+      <button onClick={() => setCookie(cookieState + "!")}>setCookie</button>
+      <button onClick={() => delCookie()}>delCookie</button>
     </main>
   );
 }
@@ -1180,19 +1255,21 @@ export function UseDebugValueDemo() {
 
 ## hook: useId
 
-React18 新增 hook, 生成稳定的唯一 ID, 用于解决 SSR 场景下 ID 不一致问题
+生成跨服务器和客户端的唯一稳定 ID; SSR 场景下, 服务器和客户端渲染顺序可能不同, 如果递增生成 ID, 双端生成的 ID 可能不同, 导致 Hydration 水合错误; 使用 useId 可以保证服务器和客户端生成的 ID 相同
 
 案例: 为组件生成唯一 ID
 
 ```tsx
 export const UseIdDemo: React.FC = () => {
-  const ID = useId();
-  const iptID = useId();
-  console.log(ID, iptID);
+  const id = useId();
+  const inputId = useId();
+  console.log("id =", id, "inputId =", inputId);
+  // id = :r0: inputId = :r1:
+  // id = :r2: inputId = :r3:
   return (
-    <main style={itemStyle}>
-      <label htmlFor={iptID}>输入框</label>
-      <input type="text" id={iptID}></input>
+    <main>
+      <label htmlFor={inputId}>输入框</label>
+      <input type="text" id={inputId}></input>
     </main>
   );
 };
