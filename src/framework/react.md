@@ -83,12 +83,15 @@ const App = () => {
 
 :::
 
-## ReactNode, JSX.Element, ReactElement, React.FC
+## JSX.Element, React.ComponentType, React.ElementType, React.FC, React.ReactElement, React.ReactNode,
 
-- `type ReactNode = null | undefined | boolean | number | string | JSX.Element`, ReactNode 是 React 可以渲染的所有类型, 是最广泛的类型
-- `type JSX.Element = ReactElement` 使用 React.createElement() 或 JSX 标签语法创建的元素的类型
-- React.FC 函数式组件, 需要显式指定特殊的 children 属性, children 属性通常是 ReactNode 类型, 类似 Vue 的 slot 插槽
-- ReactElement 类型, 可以类比 Vue 中的 VNode 类型; React.FC/React.FunctionComponent 类型, 可以类比 Vue 中的 Component 类型
+- `React.ReactNode`: React 可以渲染的所有类型, 是最广泛的类型
+- `React.ReactElement, JSX.Element` 使用 React.createElement() 或 JSX 标签语法创建的元素的类型
+- `React.ComponentType<IProps>` 函数组件或类组件
+- `React.ElementType` React 所有的标签类型
+- `React.FC` 函数组件, 有特殊的 children 属性, children 属性通常是 `React.ReactNode` 类型, 类似 Vue 的 slot 插槽
+- `React.ReactElement` 类型, 可以类比 Vue 中的 `VNode` 类型
+- `React.FC/React.FunctionComponent` 类型, 可以类比 Vue 中的 `Component` 类型
 
 |            | React                                                    | Vue                                                                                 |
 | ---------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
