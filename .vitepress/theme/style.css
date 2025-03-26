@@ -18,21 +18,9 @@
 
 :root {
   --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "PingFang SC", "Microsoft YaHei", monospace !important;
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "Microsoft YaHei", monospace !important;
   --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "PingFang SC", "Microsoft YaHei", monospace !important;
-}
-
-.VPImage {
-  border-radius: 50%;
-  animation: rotate 10s linear infinite;
-}
-
-@keyframes rotate {
-  0% {
-    transform: translate(-120px, -120px) rotate(0deg);
-  }
-  100% {
-    transform: translate(-120px, -120px) rotate(360deg);
-  }
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "Microsoft YaHei", monospace !important;
 }
