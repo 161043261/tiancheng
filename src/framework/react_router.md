@@ -1,5 +1,55 @@
 # zustand-router
 
+安装
+
+```bash
+pnpm install react-router
+```
+
+## 数据模式和声明模式
+
+推荐使用数据模式
+
+::: code-group
+
+```tsx [数据模式 router.tsx]
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: Home,
+  },
+  {
+    path: "/about",
+    element: <About />,
+  },
+]);
+```
+
+```tsx [数据模式 main.tsx]
+import { StrictMode } from "react";
+const container = document.getElementById("root")!;
+const root = createRoot(container);
+root.render(<RouterProvider router={router} />);
+```
+
+```tsx [声明模式 main.tsx]
+const container = document.getElementById("root");
+const root = createRoot(container);
+
+root.render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />} />
+      <Route path="about" element={<About />} />
+    </Routes>
+  </BrowserRouter>,
+);
+```
+
+`<Link>`, `NavLink` 类似 Vue 的 `<RouterLink>`
+
+:::
+
 ## 路由导航
 
 ### 声明式导航
@@ -35,10 +85,11 @@ export function Login() {
 
 ### SearchParams 传参 (hook: useSearchParams)
 
+URL 查询参数
+
 ```tsx
 // src/page/Login.tsx
 navigate("/article?name=whoami&age=23");
-
 // src/page/Article.tsx
 const [params, setParams] = useSearchParams();
 const name = params.get("name");
@@ -47,10 +98,11 @@ const age = params.get("age");
 
 ### Params 传参 (hook: useParams)
 
+URL 路径参数
+
 ```tsx
 // src/page/Login.tsx
-navigate("/article?name=whoami&age=23");
-
+navigate('/article/whoami/23') // /article/:name/:age
 // src/page/Article.tsx
 const params = useParams(); // params 只读
 console.log(params.name, params.age);

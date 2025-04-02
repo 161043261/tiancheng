@@ -392,6 +392,144 @@ cookie, localStorage, sessionStorage 和 indexedDB 都是客户端存储技术
 | 同源窗口共享, 可以设置 domain 属性以跨子域名共享 | 同源窗口共享                      | 不共享             | 同源窗口共享 |
 | 可以设置 httponly 属性, 以防止 XSS 攻击          | 只在客户端存储, 容易受到 XSS 攻击 | 同左               | 同左         |
 
-### 客户端存储跨域
+## 客户端存储跨域
 
-1. cookie 可以跨域, 服务器派发 cookie 时设置 domain 属性以跨子域名共享
+### cookie 跨域共享
+
+1. cookie 可以跨域共享, 服务器派发 cookie 时设置 domain 属性, 设置 path 属性 (通常是 /), 以跨子域名共享
+2. 服务器还需要指定响应头字段 Access-Control-Allow-Credentials: true, 并且 Access-Control-Allow-Origin 不能使用 \*, 必须指定具体的域名;
+3. 客户端使用 fetch 发送请求时, 需要指定 `credentials: "include"`; 使用 XMLHttpRequest 发送请求时, 需要指定 `xhr.withCredentials = true`
+
+::: code-group
+
+```ts [使用 fetch]
+fetch("https://ys.mihoyo.com/main/character/liyue?char=11", {
+  method: "GET",
+  credentials: "include",
+});
+```
+
+```ts [使用 XMLHttpRequest]
+const xhr = new XMLHttpRequest();
+xhr.open("GET", "https://ys.mihoyo.com/main/character/liyue?char=11", true);
+xhr.withCredentials = true;
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.onload = function () {
+  if (xhr.status === 200) {
+    console.log(xhr.responseText);
+  }
+};
+xhr.send();
+```
+
+:::
+
+### localStorage, sessionStorage, IndexedDB 跨域共享
+
+1. 根据同源策略, localStorage, sessionStorage, IndexedDB 默认不允许跨域共享
+2. 可以使用 iframe, 代理页面, 后端使用 CORS 中间件, postMessage 等方式实现跨域共享
+
+```bash
+# pwd: /path/to/cors/2024
+http-server -p 2024
+# pwd: /path/to/cors/2025
+http-server -p 2025
+```
+
+::: code-group
+
+```html [cors/2024/index.html]
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>数据源页面</title>
+  </head>
+  <body>
+    数据源页面
+    <script>
+      window.addEventListener("message", function (event) {
+        if (event.origin !== "http://127.0.0.1:2025") return;
+        const { action, key, value } = event.data;
+        if (action === "get") {
+          const data = localStorage.getItem(key);
+          event.source.postMessage(
+            { action: "get", key, value: data },
+            event.origin,
+          );
+        }
+        if (action === "set") {
+          localStorage.setItem(key, value);
+          event.source.postMessage(
+            { action: "set", key, success: true },
+            event.origin,
+          );
+        }
+      });
+    </script>
+  </body>
+</html>
+```
+
+```html [cors/2025/index.html]
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>主页面</title>
+  </head>
+  <body>
+    <button onclick="setData()">写数据</button>
+    <button onclick="getData()">读数据</button>
+    <script>
+      let iframe;
+      (function () {
+        iframe = document.createElement("iframe");
+        iframe.src = "http://127.0.0.1:2024/index.html";
+        // iframe.style.display = "none";
+        document.body.appendChild(iframe);
+      })();
+      let age = 0;
+      function setData() {
+        const message = {
+          action: "set",
+          key: "user",
+          value: JSON.stringify({ name: "米哈游发 offer", age: ++age }),
+        };
+        iframe.contentWindow.postMessage(message, "http://127.0.0.1:2024");
+      }
+      function getData() {
+        const message = { action: "get", key: "user" };
+        iframe.contentWindow.postMessage(message, "http://127.0.0.1:2024");
+      }
+      window.addEventListener("message", function (event) {
+        if (event.origin !== "http://127.0.0.1:2024") return;
+        const { action, key, value } = event.data;
+        if (action === "get") {
+          console.log("读数据成功:", JSON.parse(value));
+        }
+        if (action === "set") {
+          console.log("写数据成功");
+        }
+      });
+    </script>
+  </body>
+</html>
+```
+
+:::
+
+## DNS 域名系统
+
+DNS 域名系统是一个分布式数据库, 存储域名到 IP 地址的映射, 使用 UDP, 端口号 53
+
+- 递归查询: 直接返回域名解析结果
+- 迭代查询: 返回下一级 DNS 服务器地址
+
+### DNS 解析过程
+
+- 检查 DNS 缓存: 浏览器缓存? 操作系统缓存?, /etc/hosts 文件?
+- 客户端请求本地 DNS 服务器 (例如: 家庭路由器, 企业 DNS 服务器, 运营商提供的 DNS 服务器), 如果命中, 则返回; 如果未命中, 则本地服务器执行**迭代查询**:
+  - 本地 DNS 服务器 -> 根 DNS 服务器
+  - 本地 DNS 服务器 -> 顶级 DNS (TLD) 服务器 (例: .com)
+  - 本地 DNS 服务器-> 权威域名服务器 (例: 阿里云解析)
+- 本地 DNS 服务器缓存结果, 并返回结果给客户端
+- 浏览器到本地 DNS 服务器是**递归查询** (递归查询直接返回域名解析结果)
