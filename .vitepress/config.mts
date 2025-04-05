@@ -13,7 +13,7 @@ export default defineConfig({
   // 如果指定源目录为 src, 则 react.svg 放在源目录下的公共目录 src/public 下
   head: [
     // favicon.ico
-    ["link", { rel: "icon", type: "image/svg+xml", href: "/react.svg" }],
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/offer.svg" }],
   ],
   lang: "zh-CN",
   cleanUrls: true, // 简洁的 URL: 删除 URL 中的 .html 后缀

@@ -30,6 +30,7 @@ export default {
       items: [
         { text: "多线程", link: "/script/js" },
         { text: "事件循环", link: "/script/js2" },
+        { text: "ACM 模式", link: "/script/js3" },
         { text: "tsconfig", link: "/script/ts" },
         { text: "装饰器", link: "/script/ts2" },
       ],
