@@ -1,4 +1,4 @@
-# JS
+# 算法
 
 ## Node.js ACM 模式
 

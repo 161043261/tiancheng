@@ -85,7 +85,7 @@ app.mount("#app");
 
 > [!warning] hash 模式和 hashchange 事件
 >
-> - Vue3 路由的 hash 模式通过改变 `location.hash` 的值, 触发 hashchange 事件
+> - Vue3 路由的 hash 模式通过改变 `location.hash` 的值, 会触发 hashchange 事件
 > - vue-router 监听 hashchange 事件, 实现无刷新的路由跳转, 对 SEO 不友好
 
 ```js
@@ -109,8 +109,7 @@ addEventListener("hashchange", (ev) => {
 >
 > - 点击浏览器的前进/后退按钮改变 URL 时, 会触发 popstate 事件
 > - 点击 `<a>` 标签, 或调用 `history.pushState(), history.replaceState()` 改变 URL 时, 不会触发 popstate 事件
-> - vue-router 拦截 `<a>` 标签的点击事件和 `history.pushState(), history.replaceState()` 的调用, 调用 `history.back(), > history.go(delta: number), history.forward()` 触发 popstate 事件
-> - vue-router 监听 popstate 事件, 实现无刷新的路由跳转
+> - 补充: 调用 `history.back(), history.go(delta: number), history.forward()`, 会触发 popstate 事件
 
 ```js
 addEventListener("popstate", (ev) => {

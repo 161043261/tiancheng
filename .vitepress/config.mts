@@ -25,9 +25,10 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Homepage", link: "/" },
-      { text: "Linux", link: "/about/linux" },
-      { text: "CSS", link: "/static/css" },
-      { text: "Vue", link: "/framework/vue" },
+      { text: "网络", link: "/mhy/network" },
+      { text: "CSS", link: "/hc/css" },
+      { text: "算法", link: "/jt/algorithm" },
+      { text: "Vue", link: "/vr/vue" },
     ],
     sidebar: sidebar,
     socialLinks: [

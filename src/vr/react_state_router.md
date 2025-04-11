@@ -102,7 +102,7 @@ URL 路径参数
 
 ```tsx
 // src/page/Login.tsx
-navigate('/article/whoami/23') // /article/:name/:age
+navigate("/article/whoami/23"); // /article/:name/:age
 // src/page/Article.tsx
 const params = useParams(); // params 只读
 console.log(params.name, params.age);

@@ -158,7 +158,7 @@ class ErrorBoundary extends React.Component<IProps, IState> {
   componentDidCatch(err: Error, errorInfo: ErrorInfo) {
     console.error("在生产环境中记录并报告错误:", err, errorInfo.componentStack);
     // 上报错误信息给服务器
-    reportError(err, errorInfo);
+    reportInfo(err, errorInfo);
   }
 
   render(): ReactNode {
@@ -274,7 +274,7 @@ function xhrReplace() {
    * @param {function} wrapper 包裹函数
    */
   const replaceAop = (sourceObj, propKey, wrapper) => {
-    if (!(propKey in sourceObj)) return;
+    if (!sourceObj || !(propKey in sourceObj)) return;
     const originalFn = sourceObj[propKey];
     const wrappedFn = wrapper(originalFn);
     sourceObj[propKey] = wrappedFn;
@@ -311,7 +311,7 @@ function xhrReplace() {
         // 计算 xhr 请求时长
         this._xhrTrace.elapsedTime = endTime - this._xhrTrace.startTime;
         // 上报 xhr 请求信息给服务器
-        reportError(this._xhrTrace);
+        reportInfo(this._xhrTrace);
         // 执行原始的 send 方法
       });
       originalSend.apply(this, args);
@@ -329,7 +329,7 @@ function fetchReplace() {
     return;
   }
   const replaceAop = (sourceObj, propKey, wrapper) => {
-    if (!(propKey in sourceObj)) return;
+    if (!sourceObj || !(propKey in sourceObj)) return;
     const originalFn = sourceObj[propKey];
     const wrappedFn = wrapper(originalFn);
     sourceObj[propKey] = wrappedFn;
@@ -338,8 +338,6 @@ function fetchReplace() {
   replaceAop(window, "fetch", (originalFetch) => {
     return function (url, config) {
       const startTime = new Date().getTime();
-      // config ? (config.method ?? "GET") : "GET";
-      // (config && config.method) || "GET";
       const method = config?.method ?? "GET";
       let _fetchTrace = {
         type: "fetch",
@@ -348,7 +346,7 @@ function fetchReplace() {
         url,
       };
 
-      const reportError = (xhrTrace) => {
+      const reportInfo = (xhrTrace) => {
         console.log("上报 fetch 请求信息");
         console.log(xhrTrace);
       };
@@ -366,7 +364,7 @@ function fetchReplace() {
           resClone.text().then((data) => {
             _fetchTrace.responseText = data;
             // 上报 fetch 请求信息给服务器
-            reportError(_fetchTrace);
+            reportInfo(_fetchTrace);
           });
           // 返回原始 res, 外部继续使用 .then 调用
           return res;
@@ -380,7 +378,7 @@ function fetchReplace() {
             error: err,
           };
           // 上报 fetch 请求信息给服务器
-          reportError(_fetchTrace);
+          reportInfo(_fetchTrace);
           throw err;
         }, // onrejected
       );
@@ -394,4 +392,161 @@ function fetchReplace() {
 - 使用性能监测对象 [PerformanceObserver](https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceObserver)
 - 使用 [web-vitals](https://github.com/GoogleChrome/web-vitals) 库
 
-## 用户
+## 用户行为数据采集
+
+用户行为包括: 页面跳转 (路由改变), 用户点击事件, 资源加载, 接口调用, 代码报错等行为
+
+### 思路
+
+1. 创建 `Breadcrumb` 面包屑类, 用于记录用户行为
+2. 通过重写或添加对应的事件, 完成用户行为数据的采集
+
+```ts
+interface ICrumb {
+  timeStamp: number;
+}
+
+class Breadcrumbs {
+  heapCap = 20;
+  minHeap: ICrumb[] = [];
+  constructor(maxBreadcrumbs_ = 20) {
+    this.heapCap = maxBreadcrumbs_;
+  }
+
+  push(...data: ICrumb[]) {
+    data = data.slice(0, this.heapCap);
+    this.minHeap.unshift(...data);
+    this.minHeap.slice(0, this.heapCap);
+    this.buildMinHeap(data.length - 1, this.minHeap.length);
+    return;
+  }
+
+  buildMinHeap(lastHeapifyIdx: number, heapSize: number) {
+    const lastLeafIdx = heapSize - 1;
+    const lastNonLeafIdx = Math.floor((lastLeafIdx - 1) / 2);
+    lastHeapifyIdx = Math.min(lastHeapifyIdx, lastNonLeafIdx);
+    for (let i = lastHeapifyIdx; i >= 0; i--) {
+      this.minHeapify(i, heapSize);
+    }
+  }
+
+  minHeapify(idx: number, heapSize: number) {
+    let childIdx = idx;
+    const left = idx * 2 + 1;
+    const right = idx * 2 + 2;
+    if (
+      left < heapSize &&
+      this.minHeap[left].timeStamp < this.minHeap[childIdx].timeStamp
+    ) {
+      childIdx = left;
+    }
+    if (
+      right < heapSize &&
+      this.minHeap[right].timeStamp < this.minHeap[childIdx].timeStamp
+    ) {
+      childIdx = right;
+    }
+    if (childIdx !== idx) {
+      [this.minHeap[idx], this.minHeap[childIdx]] = [
+        this.minHeap[childIdx],
+        this.minHeap[idx],
+      ];
+      this.minHeapify(childIdx, heapSize);
+    }
+  }
+
+  getAndClearHeap() {
+    const ret = this.minHeap;
+    this.minHeap = [];
+    return ret;
+  }
+}
+```
+
+### Part1. 页面跳转 (路由改变)
+
+- 路由的 hash 模式: 改变 `location.hash` 的值, 会触发 hashchange 事件
+- 点击浏览器的前进/后退按钮改变 URL 时, 会触发 popstate 事件
+- 路由的 history 模式: 点击 `<a>` 标签, 或调用 `history.pushState(), history.replaceState()` 改变 URL 时, 不会触发 popstate 事件
+
+> [!warning] 结论
+> 对于 Vue `const router = createRouter({ history: createWebHistory(), routes })` 或 React `const router = createBrowserRouter(routes)` 的 history 模式的路由, 通过重写 `window.history.pushState`, `window.history.replaceState` 以监听路由改变
+
+::: code-group
+
+```js [代码实现]
+let preHref = document.location.href;
+function historyReplace() {
+  const reportInfo = (k, v) => {
+    console.log("上报路由改变");
+    console.log(k, v);
+  };
+
+  const replaceAop = (sourceObj, propKey, wrapper) => {
+    if (!sourceObj || !(propKey in sourceObj)) return;
+    const originalFn = sourceObj[propKey];
+    const wrappedFn = wrapper(originalFn);
+    sourceObj[propKey] = wrappedFn;
+  };
+
+  const historyReplaceFn = (originalHistoryFn) => {
+    return function (...args) {
+      const url = args.length > 2 ? args[2] : undefined;
+      if (url) {
+        const from = preHref;
+        const to = String(url);
+        preHref = to;
+        // 上报路由改变
+        reportInfo("routeChange", { from, to });
+      }
+      return originalHistoryFn.apply(this, args);
+    };
+  };
+  replaceAop(window.history, "pushState", historyReplaceFn);
+  replaceAop(window.history, "replaceState", historyReplaceFn);
+}
+```
+
+```js [使用]
+historyReplace();
+
+const p1 = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    history.pushState({}, "", "/pushState");
+    resolve();
+  }, 3000);
+});
+
+p1.then(() => {
+  setTimeout(() => {
+    history.replaceState({}, "", "/replaceState");
+  }, 3000);
+});
+```
+
+### Part2. 用户点击事件
+
+方法: document 对象添加 click 事件监听器, 监听用户点击事件并上报
+
+```js
+function addClickListener() {
+  const reportInfo = (data) => {
+    console.log("上报用户点击事件");
+    console.log(data);
+  };
+  document.addEventListener("click", ({ target }) => {
+    if (!target) return null;
+    const tagName = target.tagName.toLowerCase();
+    if (tagName === "body" || tagName === "html") {
+      return null;
+    }
+    let classNames = target.classList.value;
+    console.log(classNames);
+    if (classNames !== "") classNames = ` class="${classNames}"`;
+    const id = target.id ? ` id="${target.id}"` : "";
+    const innerText = target.innerText;
+    const dom = `<${tagName}${id}${classNames}>${innerText}</${tagName}>`;
+    reportInfo({ type: "click", dom });
+  });
+}
+```
