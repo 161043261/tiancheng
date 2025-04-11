@@ -1,4 +1,4 @@
-# Web Workers
+# Web Worker
 
 ## 概述
 

@@ -1,4 +1,4 @@
-# CSS
+# CSS2
 
 - @font-face
 - @keyframes

@@ -1,4 +1,4 @@
-# Vue3 Pinia
+# Vue3 State
 
 Pinia 状态管理库, 状态即响应式数据
 

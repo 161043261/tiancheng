@@ -21,6 +21,7 @@ export default defineConfig({
   srcDir: "./src",
   lastUpdated: true,
   themeConfig: {
+    outline: [2, 3],
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Homepage", link: "/" },

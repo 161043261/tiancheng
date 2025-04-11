@@ -1,4 +1,4 @@
-# Build my own React
+# tiny-react
 
 ## 开始
 

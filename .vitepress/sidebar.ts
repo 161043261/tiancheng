@@ -1,50 +1,55 @@
 export default {
-  "/about/": [
+  "/mhy/": [
     {
-      text: "About",
+      text: "欢迎",
       items: [
-        { text: "Docker", link: "/about/docker" },
-        { text: "Git", link: "/about/git" },
-        { text: "Linux", link: "/about/linux" },
-        { text: "MySQL", link: "/about/mysql" },
-        { text: "Network", link: "/about/network" },
-        { text: "Network2", link: "/about/network2" },
-        { text: "VScode", link: "/about/vscode" },
+        { text: "Docker", link: "/mhy/docker" },
+        { text: "Git", link: "/mhy/git" },
+        { text: "Linux", link: "/mhy/linux" },
+        { text: "MySQL", link: "/mhy/mysql" },
+        { text: "Network", link: "/mhy/network" },
+        { text: "Network2", link: "/mhy/network2" },
+        { text: "VScode", link: "/mhy/vscode" },
       ],
     },
   ],
-  "/static/": [
+  "/hc/": [
     {
       text: "HTML/CSS",
       items: [
-        { text: "CSS", link: "/static/css" },
-        { text: "CSS2", link: "/static/css2" },
-        { text: "HTML", link: "/static/html" },
-        { text: "Sass", link: "/static/sass" },
+        { text: "HTML", link: "/hc/html" },
+        { text: "CSS", link: "/hc/css" },
+        { text: "CSS2", link: "/hc/css2" },
+        { text: "Sass", link: "/hc/sass" },
       ],
     },
   ],
-  "/script/": [
+  "/jt/": [
     {
       text: "JS/TS",
       items: [
-        { text: "多线程", link: "/script/js" },
-        { text: "事件循环", link: "/script/js2" },
-        { text: "ACM 模式", link: "/script/js3" },
-        { text: "tsconfig", link: "/script/ts" },
-        { text: "装饰器", link: "/script/ts2" },
+        { text: "多线程", link: "/jt/web_worker" },
+        { text: "事件循环", link: "/jt/event_loop" },
+        { text: "算法", link: "/jt/algorithm" },
+        { text: "tsconfig", link: "/jt/tsconfig" },
+        { text: "装饰器", link: "/jt/decorator" },
       ],
     },
   ],
-  "/framework/": [
-    { text: "Vue3 高级", link: "/framework/d2vue" },
-    { text: "Build my own React", link: "/framework/my_react" },
-    { text: "Nuxt 基础", link: "/framework/nuxt" },
-    { text: "React 路由", link: "/framework/react_router" },
-    { text: "React 基础", link: "/framework/react" },
-    { text: "Vue3 Pinia", link: "/framework/vue_pinia" },
-    { text: "Vue3 路由", link: "/framework/vue_router" },
-    { text: "Vue 基础", link: "/framework/vue" },
-    { text: "前端监控", link: "/framework/trace" },
+  "/vr/": [
+    {
+      text: "框架",
+      items: [
+        { text: "Vue3 基础", link: "/vr/vue" },
+        { text: "Vue3 状态", link: "/vr/vue_state" },
+        { text: "Vue3 路由", link: "/vr/vue_router" },
+        { text: "Vue3 高级", link: "/vr/d2vue" },
+        { text: "React 基础", link: "/vr/react" },
+        { text: "React 状态&路由", link: "/vr/react_state_router" },
+        { text: "Nuxt 基础", link: "/vr/nuxt" },
+        { text: "小 React", link: "/vr/tiny_react" },
+        { text: "前端监控", link: "/vr/trace" },
+      ],
+    },
   ],
 };

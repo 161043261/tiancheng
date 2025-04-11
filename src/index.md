@@ -10,23 +10,21 @@ hero:
     alt: "tiancheng"
   actions:
     - theme: brand
-      text: "网络"
-      link: /about/network
+      text: 欢迎
+      link: /mhy/network
     - theme: alt
       text: HTML/CSS
-      link: /static/css
+      link: /hc/css
     - theme: alt
       text: JS/TS
-      link: /script/js
+      link: /jt/algorithm
     - theme: alt
-      text: "框架"
-      link: /framework/vue
+      text: 框架
+      link: /vr/react
 
 features:
   - title: 前端
-    details: HTML, CSS, Sass, TailwindCSS, JS, TS, Vue, Pinia, React, Webpack, Vite, Electron
-  - title: 后端
-    details: Node.js, Express, Nest.js, Redis, MongoDB, MySQL, Go
-  - title: 基础
-    details: Python, C++, Git, Nginx, Docker, Linux
+    details: html, css, sass, tailwindcss, js, ts, vue, pinia, vue-router, react, zustand, react-router, vite, electron
+  - title: 其他
+    details: cpp, docker, express, git, linux, mongodb, mysql, nginx, node.js, nuxt, redis
 ---

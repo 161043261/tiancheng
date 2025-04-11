@@ -372,8 +372,6 @@ const arr = ref<string[]>(["a", "b", "c", "d"]);
 </template>
 ```
 
-![diff](../assets/diff.png)
-
 ## ref, shallowRef, isRef, triggerRef, customRef
 
 > [!tip]
@@ -1474,8 +1472,6 @@ const SuspenseAsync = defineAsyncComponent(
   () => import("./components/SuspenseAsync.vue"),
 );
 ```
-
-![defineAsyncComponent](../assets/defineAsyncComponent.png)
 
 - 红色: public 目录下, 不打包
 - 蓝色: 异步导入的路由组件, 分开打包
