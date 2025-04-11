@@ -13,7 +13,7 @@ site: build
 	git remote add origin git@github.com:161043261/161043261.github.io.git && \
 	git remote add mirror git@github.com:tianchenghang/tianchenghang.github.io.git && \
 	git add -A && \
-	git commit -m 'hmr: Hot module replacement' && \
+	git commit -m 'feat: Introduce new feature' && \
 	git push -f origin main --set-upstream && \
 	git push -f mirror main --set-upstream
 

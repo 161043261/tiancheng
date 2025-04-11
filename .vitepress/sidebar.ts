@@ -8,7 +8,7 @@ export default {
         { text: "Linux", link: "/about/linux" },
         { text: "MySQL", link: "/about/mysql" },
         { text: "Network", link: "/about/network" },
-        { text: "Network 2", link: "/about/network2" },
+        { text: "Network2", link: "/about/network2" },
         { text: "VScode", link: "/about/vscode" },
       ],
     },
@@ -18,7 +18,7 @@ export default {
       text: "HTML/CSS",
       items: [
         { text: "CSS", link: "/static/css" },
-        { text: "CSS 2", link: "/static/css2" },
+        { text: "CSS2", link: "/static/css2" },
         { text: "HTML", link: "/static/html" },
         { text: "Sass", link: "/static/sass" },
       ],
@@ -45,5 +45,6 @@ export default {
     { text: "Vue3 Pinia", link: "/framework/vue_pinia" },
     { text: "Vue3 路由", link: "/framework/vue_router" },
     { text: "Vue 基础", link: "/framework/vue" },
+    { text: "前端监控", link: "/framework/trace" },
   ],
 };
