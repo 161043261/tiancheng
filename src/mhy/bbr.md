@@ -147,3 +147,23 @@ void TcpBbr::UpdateBottleneckBandwidth(Ptr<TcpSocketState> tcb, const TcpRateOps
   }
 }
 ```
+
+### TCP Pacing (在每个 RTT 窗口内均匀发送数据包)
+
+为了使得瓶颈链路的数据包到达速率 (arrival rate) 匹配数据包离开速率 (departure rate), BBR 会对每个数据包进行 pace (在每个 RTT 窗口内均匀发送数据包)
+
+在 ProbeBW 阶段, 周期性使用 pacingGain=1.25 (向上探测) 和 pacingGain=0.75 (向下收敛), 目的是判断 BtlBw 是否有**增加**
+
+```cpp
+const double TcpBbr::PACING_GAIN_CYCLE[] = {5.0 / 4, 3.0 / 4, 1, 1, 1, 1, 1, 1};
+
+void TcpBbr::AdvanceCyclePhase() {
+  NS_LOG_FUNCTION(this);
+  m_cycleStamp = Simulator::Now();
+  m_cycleIndex = (m_cycleIndex + 1) % GAIN_CYCLE_LENGTH; // 8
+  m_pacingGain = PACING_GAIN_CYCLE[m_cycleIndex];
+}
+```
+
+- 如果 BtlBw 不变: delivery rate 不变, 1.25 后队列积压, 0.75 后队列耗尽
+- 如果 BtlBw 增大: delivery rate 增大, 新的 delivery rate 最大值会更新 BBR 对 BtlBw 的估计值, 进而增大基础 pacing rate

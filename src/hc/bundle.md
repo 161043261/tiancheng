@@ -81,7 +81,7 @@ webpack 支持多种模块化 (esm, cjs, umd), 兼容性更好, vite 使用 esm 
 
 ## vite
 
-冷启动 webpack 开发服务器时, webpack 需要打包整个 app, 然后才能提供服务; vite 将 app 中的模块分为依赖和源码两类
+冷启动 webpack 开发服务器时, webpack 需要先打包所有文件; vite 将 app 中的模块分为依赖和源码两类
 
 - 依赖: 依赖的代码通常是不改变的纯 JavaScript, 也可能有多种模块化格式 (esm, cjs, umd), vite 使用 esbuild 预构建依赖
 - 源码通常有非纯 JS 文件: .css, .scss, .ts, .tsx, .vue 等, 通常会有修改, 不是所有的源码都需要加载, 例如路由组件
@@ -458,3 +458,137 @@ pnpm exec postcss ./src/app.css -o ./dist/app.post.css
 
 - npx 先在当前目录下的 node_modules/.bin 中查找目标命令, 类似 `npm run`, 但不需要在 package.json 的 scripts 中定义
 - 如果当前目录下未找到, 则在全局目录下查找; 如果全局目录下也未找到, 则从 npm 仓库下载包到临时目录
+
+node 操作文件时, 如果发现传递的是相对路径, 则会使用 `process.cwd()` 拼接路径
+
+使用 `require('./module.js')` 加载模块时, Node.js 先读取文件内容为字符串, 将字符串包裹到 IIFE 中, 验证: `mkdir cjs && cd cjs && pnpm init && echo "console.log(arguments)" > ./main.js && node ./main.js`
+
+```js
+(function (exports, require, module, __filename, __dirname) {
+  const a = 1;
+  module.exports = a;
+});
+```
+
+## 静态资源处理
+
+- 支持 JS/TS/Vue SFC 的 import, CSS 的 url
+- 导入 json 时, vite 实际导入一个 JS 对象 (webpack 实际导入 JSON 字符串)
+  - 导入 json 时可以解构 (tree shaking 优化)
+- 导入静态资源时, 实际导入静态资源的 url
+- 静态资源体积小于 assetsInlineLimit 配置项的值, 则会被内联为 base64 字符串
+- 导入脚本作为 webWorker
+
+```js
+// 导入静态资源
+import imgUrl /** @type {string} */ from "./img.png";
+const img = document.createElement("img");
+img.src = imgUrl;
+document.body.append(img);
+
+// 导入脚本作为 webWorker
+const webWorker = new Worker(new URL("./web_worker.ts", import.meta.url), {
+  type: "module",
+});
+```
+
+## 性能优化
+
+### 页面性能指标
+
+- 首次内容绘制 FCP, First Contentful Paint: 从页面开始加载到浏览器首次渲染出内容的时间 (用户首次看到内容的时间, 内容: 首个文本或首张图片)
+- 最大 DOM 元素的绘制时间 LCP, Largest Contentful Paint
+- 速度指数 SI, Speed Index: 页面的各个可视区域的平均绘制时间, 页面等待后端发送的数据时, 会影响到 Speed Index
+- 首次可交互时间 TTI, Time to Interactive: 从页面开始加载到用户与页面可以交互的时间, 此时页面渲染已完成, 交互元素绑定的事件已注册
+- 总阻塞时间 TBT, Total Blocking Time: 从页面开始加载到首次可交互时间 (TTI) 期间, 主线程被阻塞, 无法与用户交互的总时间
+- 累积布局偏移 CLS, Cumulative Layout Shift: 比较两次渲染的布局偏移情况
+
+### 浏览器缓存
+
+- 请求强缓存的资源, 不会请求服务器, 浏览器直接返回
+- 服务器可以使用响应头中的 Cache-Control 或 Expires 字段设置强缓存, Cache-Control 的优先级高于 Expires, 表示资源在客户端的缓存有效期
+- 请求协商缓存的资源, 仍会请求服务器, 资源未更新时服务器返回 304 Not Modified, 响应体为空; 资源已更新时服务器返回 200 OK, 响应体中携带更新的资源
+- 服务器可以使用响应头中的 ETag 或 Last-Modified 字段设置协商缓存, 客户端请求时自动携带 If-None-Match (对应 ETag) 或 If-Modified-Since (对应 Last-Modified) 请求头进行验证, ETag 的优先级高于 Last-Modified
+
+### 资源释放
+
+例如某个组件中创建了计时器 (setTimeout), 如果组件卸载时不清除计时器 (clearTimeout), 下一次组件挂载时, 等于创建了两个计时器, 导致内存泄漏
+
+### requestAnimationFrame, requestIdleCallback
+
+- requestAnimationFrame: 下一帧执行传递的 callback
+- requestIdleCallback: 当前帧的空闲时间执行传递的 callback
+
+### dist 体积优化
+
+1. dist 体积可视化 `pnpm install rollup-plugin-visualizer -D`
+2. 分包, tree-shaking, gzip 压缩, 动态导入, CDN 加速
+
+分包: 将不经常更新的文件单独打包
+
+```js
+// 例: 将 node_modules 中的依赖单独打包
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+  },
+})
+```
+
+### gzip 压缩
+
+设置响应头 `Content-Encoding: gzip`
+
+### 动态导入
+
+冷启动 webpack 开发服务器时, webpack 需要先打包所有文件
+
+vite 按需加载, 动态导入 (通常在 vue-router, react-router 中使用动态导入)
+
+::: code-group
+
+```jsx
+// react, 未使用动态导入
+import Home from "./home";
+import Login from "./login";
+
+const routes = [
+  {
+    path: "/home",
+    Component: Home,
+  },
+  {
+    path: "/login",
+    Component: Login,
+  },
+];
+```
+
+```jsx
+// react, 使用动态导入
+const routes = [
+  {
+    path: "/home",
+    Component: lazy(() => import("./home")), // 要求 ./home.jsx 有默认导出
+    // Component: lazy(() =>
+    //   import("./home").then(({ Home }) => ({ default: Home })),
+    // ),
+  },
+  {
+    path: "/login",
+    Component: lazy(() =>
+      import("./login").then(({ Login }) => ({ default: Login })),
+    ),
+  },
+];
+```
+
+:::

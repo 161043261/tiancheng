@@ -2,7 +2,7 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 hero:
-  name: <img src="/offer.svg" alt="offer" width="228" />
+  name: <img src="/offer.png" alt="offer" width="365" />
   text: "画船听雨眠"
   tagline: "QQ: 161043261"
   image:
