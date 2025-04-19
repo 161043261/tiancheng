@@ -13,7 +13,7 @@
 - Vue 响应式原理
 - react
 - v8 事件循环，垃圾回收
-- 工程化: changeset, ci/cd, commitlint, husky, lint-staged
+- 工程化: CI/CD, changeset, commit-lint, husky, lint-staged
 - 前端性能优化
 - vue3 项目, react 项目 (文件上传, web-rtc),前端监控项目
 
