@@ -1,5 +1,22 @@
 # vitepress
 
+## 我应该掌握的
+
+- 算法
+- 计算机网络
+- 设计模式
+- Git
+- HTML
+- CSS
+- JS/TS
+- webpack/Vite
+- Vue 响应式原理
+- react
+- v8 事件循环，垃圾回收
+- 工程化: changeset, ci/cd, commitlint, husky, lint-staged
+- 前端性能优化
+- vue3 项目, react 项目 (文件上传, web-rtc),前端监控项目
+
 vitepress 是一个静态站点生成器 (Static Site Generator, SSG)
 
 ```shell

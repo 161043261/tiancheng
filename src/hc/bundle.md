@@ -592,3 +592,38 @@ const routes = [
 ```
 
 :::
+
+## 跨域
+
+浏览器的同源策略: 服务器响应了数据, 但浏览器禁止 JS 访问不同协议, 或不同域名 (主机 IP 地址), 或不同端口的服务器响应的数据
+
+### 开发模式处理跨域
+
+```js
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  server: {
+    proxy: {
+      // 原理: vite (Node.js 后端) 没有跨域限制
+      // 例如 fetch('/api/448719894') 时
+      // 浏览器实际请求 path=http://127.0.0.1:5173/api/448719894, 实际请求 vite 开发服务器
+      // vite 开发服务器发现 path 匹配 /api 代理规则, 应用代理规则, 转发请求
+      "/api": {
+        target: "https://space.bilibili.com/",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
+});
+```
+
+### 生产模式处理跨域
+
+1. nginx 代理
+2. 后端设置响应头
+   - `Access-Control-Allow-Origin: "*"` 允许跨域的域名
+   - `Access-Control-Allow-Headers: "*"` 允许的 http 请求头
+   - `Access-Control-Allow-Credentials: true` 允许携带凭证
+   - `Access-Control-Allow-Methods: "*"` 允许的 http 请求方法
