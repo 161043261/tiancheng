@@ -1,0 +1,26 @@
+@font-face {
+  font-family: "Iosevka Web";
+  font-display: swap;
+  /* font-weight: 400; */
+  font-stretch: normal;
+  font-style: normal;
+  src: url("../../src/assets/Iosevka-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Iosevka Web";
+  font-display: swap;
+  /* font-weight: 700; */
+  font-stretch: normal;
+  font-style: normal;
+  src: url("../../src/assets/Iosevka-Bold.woff2") format("woff2");
+}
+
+:root {
+  --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "Microsoft YaHei", monospace !important;
+  --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
+    "DejaVu Sans Mono", "YouYuan", "Yuanti SC", "PingFang SC",
+    "Microsoft YaHei", monospace !important;
+}
