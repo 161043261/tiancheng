@@ -1351,66 +1351,9 @@ function changeFontSize(pixel: number) {
 }
 ```
 
-## UnoCSS: CSS 原子化
+## CSS 原子化
 
 CSS 原子化的优点: CSS 复用, 减小 CSS 体积
-
-```bash
-pnpm add -D unocss
-pnpm add -D @iconify-json/ic
-```
-
-Vite 项目中使用 UnoCSS
-
-[iconify](https://iconify.design/)
-
-::: code-group
-
-```ts [vite.config.ts]
-import unoCss from "unocss/vite";
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    /** ... */
-    unoCss({
-      // 预设
-      presets: [presetIcons(), presetAttributify(), presetUno()],
-      rules: [
-        ["_border", { border: "1px solid #ccc" }],
-        [/^_w-(\d+)$/, ([, d]) => ({ width: `${Number(d)}px` })],
-        [/^_p-(\d+)$/, ([, d]) => ({ padding: `${Number(d)}px` })],
-      ],
-      shortcuts: {
-        cheerChen: ["_border", "_w-100", "_p-10"],
-      },
-    }),
-  ],
-});
-```
-
-```ts [main.ts]
-import "uno.css";
-// ...
-```
-
-```vue [使用 UnoCSS]
-<template>
-  <main>
-    <div class="_border _w-100 _p-10">UnoCSS Demo</div>
-    <div class="cheerChen">UnoCSS Demo2</div>
-    <!-- https://icon-sets.iconify.design/ic/page-3.html -->
-    <!-- presetIcons() 预设 -->
-    <div class="i-ic-baseline-apple"></div>
-    <!-- presetAttributify() 预设 -->
-    <div _border _w="100" _p="10">UnoCSS Demo3</div>
-    <div cheerChen>UnoCSS Demo4</div>
-    <!-- presetUno() 预设: 集成了 tailwindcss 等... -->
-  </main>
-</template>
-```
-
-:::
 
 ## Vue 函数式编程
 

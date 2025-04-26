@@ -191,8 +191,8 @@ export const router = createBrowserRouter([
         Component: About, // 等价于 element: <About />
       },
       {
-        path: "/demo/board", // 等价于 path: "board"
-        Component: Board, // 等价于 element: <Board />
+        path: "/demo/home", // 等价于 path: "home"
+        Component: Home, // 等价于 element: <Home />
       },
     ],
   },
@@ -263,113 +263,7 @@ export function Article() {
 - 索引路由: 即 `index: true`
 - 前缀路由: 可以省略父路由的 Component
 
-================================================================================
-
-### 声明式导航
-
-```tsx
-import { Link, NavLink } from "react-router";
-
-export function Login() {
-  return (
-    <div>
-      Login
-      <Link to="/article">Link to article</Link>
-      <NavLink to="/article">Link to article</NavLink>
-    </div>
-  );
-}
-```
-
-### 编程式导航 (hook: useNavigate)
-
-```tsx
-export function Login() {
-  const navigate = useNavigate();
-  return (
-    <div>
-      Login
-      <button onClick={() => navigate("/article")}>Navigate to article</button>
-    </div>
-  );
-}
-```
-
-## 路由导航传参
-
-### SearchParams 传参 (hook: useSearchParams)
-
-URL 查询参数
-
-```tsx
-// src/page/Login.tsx
-navigate("/article?name=whoami&age=23");
-// src/page/Article.tsx
-const [params, setParams] = useSearchParams();
-const name = params.get("name");
-const age = params.get("age");
-```
-
-### Params 传参 (hook: useParams)
-
-URL 路径参数
-
-```tsx
-// src/page/Login.tsx
-navigate("/article/whoami/23"); // /article/:name/:age
-// src/page/Article.tsx
-const params = useParams(); // params 只读
-console.log(params.name, params.age);
-```
-
-## 嵌套路由, 默认二级路由
-
-::: code-group
-
-```tsx [@/router/index.tsx]
-export const router = createBrowserRouter([
-  {
-    path: "/layout",
-    element: <Layout />,
-    children: [
-      {
-        index: true, // 默认二级路由 (默认渲染的二级路由组件)
-        // 等价于设置 path: '',
-        element: <About />,
-      },
-      {
-        path: "about", // /layout/about
-        element: <About />,
-      },
-      {
-        path: "/layout/board", // board
-        element: <Board />,
-      },
-    ],
-  },
-]);
-```
-
-```tsx [@/page/Layout.tsx]
-export function Layout() {
-  return (
-    <div>
-      Layout 一级路由
-      {/* 等价于 to="about" */}
-      <Link to="/layout/about">About</Link>
-      {/* 等价于 to="/layout/board" */}
-      <Link to="board">Board</Link>
-      {/* Outlet: 渲染父路由的匹配子路由, 如果没有匹配的子路由, 则不渲染
-      类比 Vue 的 <RouterView> */}
-      <Outlet />
-    </div>
-  );
-}
-```
-
-:::
-
-## 404 路由配置
+### 404 路由
 
 ```tsx
 export const router = createBrowserRouter([
@@ -380,15 +274,435 @@ export const router = createBrowserRouter([
 ]);
 ```
 
-## 路由模式
+## 路由传参
 
-- history 模式: `createBrowserRouter()`
-- hash 模式 `createHashRouter()`
+### URL 查询参数 (hook: useSearchParams)
 
-| 路由模式 | URL      | 原理                          | 方法                    |
-| -------- | -------- | ----------------------------- | ----------------------- |
-| history  | /login   | history 对象的 pushState 方法 | `createBrowserRouter()` |
-| hash     | /#/login | 监听 hashchange 事件          | `createHashRouter()`    |
+::: code-group
+
+```tsx [@/pages/Home.tsx]
+import { NavLink, useNavigate } from "react-router";
+
+export function Home() {
+  const navigate = useNavigate();
+  return (
+    <div>
+      {/* useNavigate */}
+      <button
+        onClick={() => navigate("/demo/about?company=米哈游&project=原神")}
+      >
+        About
+      </button>
+      {/* NavLink */}
+      <NavLink to="/demo/about?company=米哈游&project=原神">About2</NavLink>
+    </div>
+  );
+}
+```
+
+```tsx [@/pages/About.tsx]
+import { useSearchParams, useLocation } from "react-router";
+
+export function About() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const company = searchParams.get("company");
+  const project = searchParams.get("project");
+  console.log(company, project);
+
+  const location = useLocation();
+  // 如果 searchParams 中有中文, 则需要对 location.search 手动解码
+  console.log(location.search);
+
+  return (
+    <div>
+      <button
+        onClick={() =>
+          setSearchParams((params) => {
+            params.set("company", "hoyoverse");
+            params.set("project", "genshin");
+            return params;
+          })
+        }
+      >
+        setSearchParams
+      </button>
+    </div>
+  );
+}
+```
+
+:::
+
+### URL 路径参数 (hook: useParams)
+
+::: code-group
+
+```tsx [@/router/index.ts]
+//! http://localhost:5173/article/EvanYou/Vue3
+export const router = createBrowserRouter([
+  {
+    path: "/article/:name/:age",
+    element: <Article />,
+  },
+]);
+```
+
+```tsx [@/pages/Article.tsx]
+import { useParams, useSearchParams } from "react-router";
+
+export function Article() {
+  const params = useParams();
+  return (
+    <>
+      <div>Article</div>
+      useParams
+      <ul>
+        <li>name: {params.name}</li>
+        <li>age: {params.age}</li>
+      </ul>
+    </>
+  );
+}
+```
+
+:::
+
+### state 传递参数
+
+- 参数在 URL 中不显示
+- 支持传递复杂数据类型的数据
+- 使用 state 传递参数时, 当前页面不方便分享
+
+::: code-group
+
+```tsx [@/pages/Home.tsx]
+import { NavLink, useNavigate } from "react-router";
+
+export function Home() {
+  const navigate = useNavigate();
+  return (
+    <div>
+      {/* useNavigate */}
+      <button
+        onClick={() =>
+          navigate("/demo/about", {
+            state: { project: "崩坏星穹铁道", version: 3.2 },
+          })
+        }
+      >
+        About
+      </button>
+      {/* NavLink */}
+      <NavLink
+        to="/demo/about"
+        state={{ project: "崩坏星穹铁道", version: 3.2 }}
+      >
+        About2
+      </NavLink>
+    </div>
+  );
+}
+```
+
+```tsx [@/pages/About.tsx]
+import { useLocation } from "react-router";
+
+export function About() {
+  const location = useLocation();
+  console.log(location.state);
+  return <div>About</div>;
+}
+```
+
+:::
+
+## 懒加载
+
+懒加载: 延迟加载组件, 代码分包, 提高页面性能
+
+- useNavigate: `const navigate = useNavigate; navigate("/home");`
+- useNavigation: 获取当前页面的导航状态 `const navigation = useNavigation()`
+  - navigation.state: idle 空闲; loading 加载; submitting 提交
+  - 路由导航时: idle -> loading -> idle
+
+::: code-group
+
+```tsx [@/router/index.tsx]
+import { createBrowserRouter } from "react-router";
+import { Demo } from "../layout/Demo";
+import About from "../pages/About";
+
+export const router = createBrowserRouter([
+  {
+    path: "/demo",
+    element: <Demo />,
+    children: [
+      {
+        path: "about", // 等价于 path: "/demo/about"
+        // 延迟加载组件, 代码分包, 提高页面性能
+        lazy: async () => {
+          const startTime = Date.now();
+          await new Promise((resolve) => {
+            setTimeout(() => {
+              console.log(Date.now() - startTime);
+              resolve(null);
+            }, 10000);
+          });
+          const About = await import("@/pages/About.tsx");
+          return {
+            Component: About.default,
+          };
+        },
+      },
+    ],
+  },
+]);
+```
+
+```tsx [@/layout/Demo.tsx]
+import { Link, Outlet, useNavigation } from "react-router";
+import { Alert, Spin } from "antd";
+
+export function Demo() {
+  const navigation = useNavigation();
+  console.log(navigation.state); // idle -> loading -> idle
+  const isLoading = navigation.state === "loading";
+  return (
+    <div>
+      <Link to="/demo/about">About</Link>
+      {/* Outlet: 渲染父路由的匹配子路由, 如果没有匹配的子路由, 则不渲染
+      类比 Vue 的 <RouterView> */}
+      {isLoading ? (
+        <Spin size="large" tip="loading...">
+          <Alert description="loading2... " message="loading3..." type="info" />
+        </Spin>
+      ) : (
+        <Outlet />
+      )}
+    </div>
+  );
+}
+```
+
+:::
+
+## 路由操作: loader, action
+
+- GET 请求会触发 loader, 适合获取数据 (查)
+- POST, DELETE, PATCH 请求会触发 action, 适合提交表单 (增删改)
+
+### loader 适合获取数据 (查)
+
+::: code-group
+
+```tsx [@/router/index.tsx]
+const data = [
+  { name: "Microsoft", age: 1 },
+  { name: "Facebook", age: 2 },
+];
+
+async function fetchData(ms: number) {
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+  await sleep(ms);
+  return data;
+}
+
+export const router = createBrowserRouter([
+  {
+    path: "/demo",
+    element: <Demo />,
+    children: [
+      {
+        path: "/demo/loader",
+        Component: Loader,
+        // 使用 loader 代替 useEffect
+        loader: async () => {
+          const data = await fetchData(5000);
+          return {
+            okOrErr: "OK",
+            data,
+          };
+        },
+      },
+    ],
+  },
+]);
+```
+
+```tsx [@/layout/Demo.tsx]
+const data = [
+  { name: "Microsoft", age: 1 },
+  { name: "Facebook", age: 2 },
+];
+
+async function fetchData(ms: number) {
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+  await sleep(ms);
+  return data;
+}
+
+export function Demo() {
+  const navigation = useNavigation();
+  //! idle -> loading -> idle
+  console.log(navigation.state);
+  const isLoading = navigation.state === "loading";
+  return (
+    <div>
+      <Link to="/demo/loader">Loader</Link>
+      {isLoading ? (
+        <Spin size="large" tip="loading...">
+          <Alert description="loading2... " message="loading3..." type="info" />
+        </Spin>
+      ) : (
+        <Outlet />
+      )}
+    </div>
+  );
+}
+```
+
+```tsx [@/pages/LoaderAction/Loader.tsx]
+import { useLoaderData } from "react-router";
+
+export default function Loader() {
+  const { data, okOrErr } = useLoaderData<{
+    data: { name: string; age: string }[];
+    okOrErr: string;
+  }>();
+  return (
+    <main>
+      <div>okOrErr: {okOrErr}</div>
+      <div>
+        {data.map((item, idx) => (
+          <div key={idx}>
+            name: {item.name}, age: {item.age}
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+```
+
+:::
+
+### action 适合提交表单 (增删改)
+
+::: code-group
+
+```tsx [@/router/index.tsx]
+export const router = createBrowserRouter([
+  {
+    path: "/demo",
+    element: <Demo />,
+    children: [
+      {
+        path: "/demo/action",
+        Component: Action,
+        //! loader
+        loader: async () => {
+          const data = await fetchData(1000);
+          return {
+            okOrErr: "OK",
+            data,
+          };
+        },
+        //! action
+        action: async ({ request }) => {
+          const item = await request.json();
+          data.push({ name: item.name, age: Number(item.age) });
+          return { okOrErr: "OK" }; // actionData
+        },
+      },
+    ],
+  },
+]);
+```
+
+```tsx [@/layout/Demo.tsx]
+export function Demo() {
+  const navigation = useNavigation();
+  //! idle -> submitting -> loading -> idle
+  //! 实际 idle -> loading -> idle
+  console.log(navigation.state);
+  const isLoading = navigation.state === "loading";
+  return (
+    <div>
+      <Link to="/demo/action">Action</Link>
+      {isLoading ? (
+        <Spin size="large" tip="loading...">
+          <Alert description="loading2... " message="loading3..." type="info" />
+        </Spin>
+      ) : (
+        <Outlet />
+      )}
+    </div>
+  );
+}
+```
+
+```tsx [@/pages/LoaderAction/Action.tsx]
+import {
+  useActionData,
+  useLoaderData,
+  useNavigation,
+  useSubmit,
+} from "react-router";
+import { Button, Card, Form, Input } from "antd";
+
+export default function Action() {
+  const navigation = useNavigation();
+  console.log(navigation.state);
+  //! actionData
+  const actionData = useActionData();
+  console.log(actionData); // { okOrErr: 'OK' }
+  //! loader
+  const { data, okOrErr } = useLoaderData<{
+    data: { name: string; age: string }[];
+    okOrErr: string;
+  }>();
+  //! action
+  const submit = useSubmit();
+  const handleSubmitForm = (data: { name: string; age: string }) => {
+    submit(data, {
+      method: "POST",
+      encType: "application/json", // 默认 encType: 'multipart/form-data'
+    });
+  };
+  return (
+    <Card>
+      <Form onFinish={handleSubmitForm}>
+        <Form.Item label="name" name="name">
+          <Input />
+        </Form.Item>
+        <Form.Item label="age" name="age">
+          <Input />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit">
+            submit
+          </Button>
+        </Form.Item>
+      </Form>
+
+      <div>okOrErr: {okOrErr}</div>
+      <div>
+        {data.map((item, idx) => (
+          <div key={idx}>
+            name: {item.name}, age: {item.age}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+```
+
+:::
+
+# Zustand
 
 ```bash
 pnpm install zustand -D

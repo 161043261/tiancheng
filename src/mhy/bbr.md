@@ -200,7 +200,7 @@ const char* const TcpBbr::BbrModeName[BBR_PROBE_RTT + 1] = {
 - ProbeRTT 阶段: 最小 rtt 周期内 (10s) 未更新, 或 bdp 显著下降时, 进入 ProbeRTT 阶段, bbr 使用极低的发送速率 (默认 1p/rtt) 排空瓶颈缓冲区的积压, 测量并更新最小 rtt
 
 ```sh
-// net/ipv4/tcp_bbr.c
+# net/ipv4/tcp_bbr.c
 
          |
          V
