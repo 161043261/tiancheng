@@ -188,7 +188,7 @@ void TcpBbr::AdvanceCyclePhase() {
 ```cpp
 const char* const TcpBbr::BbrModeName[BBR_PROBE_RTT + 1] = {
   "BBR_STARTUP", // 连接启动时
-  "BBR_DRAIN", //
+  "BBR_DRAIN",
   "BBR_PROBE_BW",
   "BBR_PROBE_RTT",
 };
