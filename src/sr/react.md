@@ -158,6 +158,27 @@ requestIdleCallback(workLoop, { timeout: 1000 });
 2. 优先级调度: React 有自定义的任务优先级 Immediate, UserBlocking, Normal, Low, Idle
 3. 时间分片: requestIdleCallback 中 callback 执行间隔是 50ms; React 有自定义的时间分片
 
+### requestIdleCallback 的替代方案 MessageChannel
+
+1. MessageChannel 是宏任务, 1 帧内执行 1 次
+2. setTimeout 可能有 4ms 的最小延迟
+3. 如果浏览器不支持 MessageChannel, 则会降级为 setTimeout
+
+```js
+// MessageChannel 示例
+const msgChan = new MessageChannel();
+msgChan.port1.onmessage = (ev) => {
+  // msgChan.port1 receive: Message from msgChan.port2
+  console.log("msgChan.port1 receive:", ev.data);
+  msgChan.port1.postMessage("Reply from msgChan.port1");
+};
+msgChan.port2.onmessage = (ev) => {
+  // msgChan.port2 receive: Reply from msgChan.port1
+  console.log("msgChan.port2 receive:", ev.data);
+};
+msgChan.port2.postMessage("Message from msgChan.port2");
+```
+
 ## JSX.Element, React.ComponentType, React.ElementType, React.FC, React.ReactElement, React.ReactNode
 
 - `React.ReactNode`: React 可以渲染的所有类型, 是最广泛的类型
