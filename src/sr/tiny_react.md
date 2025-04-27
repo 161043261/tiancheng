@@ -14,10 +14,6 @@ ReactDOM.render(element, container); // 第 3 行代码
 替换第 1 行代码
 
 ```jsx
-// const element = React.createElement(type, props, ...children)
-// 类似于
-//! const element = Object.assign({ type }, { props: Object.assign(props, { children }) });
-
 // 替换第 1 行代码
 const element = React.createElement(
   "h1" /** type */,
@@ -82,13 +78,13 @@ container.appendChild(node);
 
 ::: code-group
 
-```jsx
+```jsx [原 JSX]
 const element = <h1 title="foo">Hello</h1>;
 const container = document.getElementById("root");
 ReactDOM.render(element, container);
 ```
 
-```js
+```js [转换后的 JS]
 const element = {
   type: "h1",
   props: {
@@ -117,7 +113,7 @@ container.appendChild(node);
 
 ::: code-group
 
-```jsx [JSX]
+```jsx [原 JSX]
 const element = (
   <div id="foo">
     <a>bar</a>

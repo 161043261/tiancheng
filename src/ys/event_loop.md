@@ -77,7 +77,7 @@ console.log(0);
 对于 60fps 的屏幕, 1 帧是 1000/60 = 16.7ms, 浏览器在 1 帧中:
 
 1. 处理用户事件: 例如 change, click, input 等
-2. 执行定时器任务
+2. 执行定时器回调函数
 3. 执行 requestAnimationFrame
-4. 执行 DOM 的重绘 (repaint 有关颜色的..., 性能开销小) 和回流 (reflow 重排, 有关宽高的..., 性能开销大)
-5. 其他, 如果有空闲时间, 则执行 requestIdleCallback (IDLE 期间可以懒加载 JS 脚本)
+4. 计算布局, 绘制: 执行 DOM 的重绘 (repaint 有关颜色的..., 性能开销小) 和回流 (reflow 重排, 有关宽高的..., 性能开销大) 等
+5. 如果有空闲时间, 则执行 requestIdleCallback (IDLE 期间可以懒加载 JS 脚本)

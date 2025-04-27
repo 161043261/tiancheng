@@ -49,15 +49,15 @@ function App() {
 pnpm install @babel/core @babel/cli @babel/preset-env @babel/preset-react -D
 ```
 
-## 虚拟 dom
+## 虚拟 DOM
 
-虚拟 DOM 是描述真实 DOM 的 JS 对象; 视图更新时, 不直接操作真实 DOM, 创建一个新的虚拟 DOM, 与旧的虚拟 DOM 进行比较, 使用 diff 算法找到最小差异, 将最小差异应用到真实 DOM 上, 以提高性能
+虚拟 DOM 是描述真实 DOM 的 JS 对象; 视图更新时, 不是直接操作真实 DOM, 而是创建一个新的虚拟 DOM, 与旧的虚拟 DOM 比较, 使用 diff 算法找到最小更新, 再将最小化 DOM 操作高效的提交到真实 DOM 上, 以提高性能
 
-优点: 性能好, 跨平台
+优点: 性能好 (diff 算法), 跨平台 (Web 端, 移动端)
 
 ::: code-group
 
-```tsx [TSX]
+```tsx [原 TSX]
 const App = () => {
   return (
     <div age="23">
@@ -83,7 +83,82 @@ const App = () => {
 
 :::
 
-## JSX.Element, React.ComponentType, React.ElementType, React.FC, React.ReactElement, React.ReactNode,
+## 虚拟 DOM 转 Fiber, 时间切片
+
+Fiber 架构: React16 引入的新协调引擎, 解决大组件更新时的卡顿现象
+
+### Fiber 架构实现了 4 个目标
+
+1. 可中断的渲染: Fiber 架构下, React 可以将大渲染任务切片为多个小的工作单元 (unitOfWork), Fiber 树的一个节点代表一个工作单元, 使得 React 可以在浏览器空闲时 (类似 requestIdleCallback) 执行小的工作单元; 浏览器需要执行高优先级的任务时, 例如用户输入时, 可以先暂停渲染, 执行高优先级任务, 再恢复渲染
+2. 优先级调度: Fiber 架构下, React 可以根据任务优先级决定调度顺序, React 优先执行动画, 用户交互等的高优先级任务, 例如用户输入; 延迟执行低优先级任务, 例如数据加载后的页面渲染, 同时任务有 timeout 过期时间, timeout 越短, 优先级越高
+   - Immediate: 立即执行, 例如动画
+   - UserBlocking: 用户交互
+   - Normal: 默认
+   - Low: 低优先级
+   - Idle: 空闲时执行
+3. 双缓存树 (Fiber Tree): 保证更新的原子性, 避免页面卡顿 (参考双缓存树)
+4. 任务切片: React 通过时间分片, 将大渲染任务切片为多个小的工作单元 unitOfWork, 低优先级的工作单元可以在浏览器空闲时执行 (类似 requestIdleCallback), 避免一次性完成大渲染任务 (构建 workInProgressFiberTree 树), 导致主渲染线程阻塞
+
+### 双缓存树
+
+React 中有两颗 Fiber 树
+
+- currentFiberTree 当前渲染的 Fiber 树 (保存更新前的状态)
+- workInProgressFiberTree 当前处理的 Fiber 树 (保存更新后的状态)
+- 直接修改新当前渲染的 Fiber 树, 会导致页面卡顿, 页面同步更新, 不可中断
+- React 有两颗 Fiber 树, 保存更新前/后的状态
+  - 协调阶段: 构建 workInProgress 树, 计算副作用; 即在内存中预计算更新后的页面, 使用 diff 算法复用 fiber 节点, 找到最小更新, 协调阶段异步更新, 可以中断
+  - 提交阶段: 预计算完成后, 更新 currentFiberTree = workInProgressTree, 将最小化 DOM 操作高效的提交到真实 DOM 上, 保证更新的原子性, 避免页面卡顿
+
+### 浏览器在 1 帧中做了什么
+
+对于 60fps 的屏幕, 1 帧是 1000/60 = 16.7ms, 浏览器在 1 帧中:
+
+- 处理用户事件: 例如 change, click, input 等
+- 执行定时器回调函数
+- 执行 requestAnimationFrame
+- 计算布局, 绘制: 执行 DOM 的重绘 (repaint 有关颜色的..., 性能开销小) 和回流 (reflow 重排, 有关宽高的..., 性能开销大) 等
+- 如果有空闲时间, 则执行 requestIdleCallback (IDLE 期间可以懒加载 JS 脚本)
+
+### requestIdleCallback, React 调度器
+
+requestIdleCallback: 当前帧的空闲时间执行传递的 callback, callback 有两个参数 deadline, options
+
+- deadline.timeRemaining() 当前帧的剩余时间 (ms)
+- deadline.didTimeout() 返回是否因为超时, 强制执行 callback
+- options: 例如 `{ timeout: 1000 }`, 指定超时时间, 如果 1000ms 内没有空闲时间, 则强制执行 callback
+
+```js
+// requestIdleCallback 示例
+const largeListLen = 1000;
+const largeList = [];
+function genLargeList() {
+  for (let i = 0; i < largeListLen; i++) {
+    largeList.push(() => {
+      document.body.innerHTML += `<div>largeListItem-${i}</div>`;
+    });
+  }
+}
+genLargeList();
+
+function workLoop(deadline) {
+  if (deadline.timeRemaining() > 1 && largeList.length > 0) {
+    const fn = largeList.shift();
+    fn();
+  }
+  requestIdleCallback(workLoop);
+}
+requestIdleCallback(workLoop, { timeout: 1000 });
+```
+
+> [!important] 面试题
+> 为什么 React 不使用原生的 requestIdleCallback, 而使用自定义的 scheduler 调度器
+
+1. requestIdleCallback 兼容性较差
+2. 优先级调度: React 有自定义的任务优先级 Immediate, UserBlocking, Normal, Low, Idle
+3. 时间分片: requestIdleCallback 中 callback 执行间隔是 50ms; React 有自定义的时间分片
+
+## JSX.Element, React.ComponentType, React.ElementType, React.FC, React.ReactElement, React.ReactNode
 
 - `React.ReactNode`: React 可以渲染的所有类型, 是最广泛的类型
 - `React.ReactElement, JSX.Element` 使用 React.createElement() 或 JSX 标签语法创建的元素的类型
