@@ -1,4 +1,4 @@
-# react state&router
+# react-router
 
 安装
 
@@ -367,7 +367,7 @@ export function Article() {
 
 :::
 
-### state 传递参数
+### state 传递状态
 
 - 参数在 URL 中不显示
 - 支持传递复杂数据类型的数据
@@ -702,246 +702,155 @@ export default function Action() {
 
 :::
 
-# Zustand
+## 4 种导航方式
 
-```bash
-pnpm install zustand -D
+1. `<Link>`: `<Link>` 组件会被渲染为 `<a>` 标签, 并阻止了默认的重新加载页面的行为
+2. `<NavLink>`
+3. 编程式导航 `useNavigate`
+4. 重定向 `redirect`
+
+### `<Link>`
+
+`<Link to="/about">About</Link>`
+
+`<Link>` 属性
+
+- to 导航的目标路径
+- replace
+  - 不替换当前路径, 保留历史记录, 反映在浏览器的前进/后退按钮 `history.pushState`
+  - 替换当前路径, 不保留历史记录, 反映在浏览器的前进/后退按钮 `history.replaceState`
+- state 传递给目标页面的状态, 参考路由传参: state 传递状态
+- relative
+  - `relative='route'` 必须使用绝对路径, 例如当前路径 `/home`, 目标路径 `/about`, `'/home/user'`
+  - `relative='path'` 可以使用相对路径, 例如当前路径 `/home`, 目标路径 `../about`, `'./user'`
+- reloadDocument 路由跳转时, 是否重新加载页面
+- preventScrollReset 是否阻止滚动位置重置 (是否保留当前滚动高度)
+- viewTransition 是否开启视图过渡, 自动添加页面过渡动画
+
+### `<NavLink>`
+
+`<NavLink>` 属性和 `<Link>` 属性相同
+
+不同: `<NavLink>` 会经过 3 个状态的转换, `<Link>` 不会, `<NavLink>` 是 `<Link>` 的增强版
+
+- active 激活状态, 当前路径和目标路径匹配
+- pending 等待状态, 等待 loader 加载数据, 参考路由操作: loader
+- transitioning 过渡状态, 使用 viewTransition 属性开启视图过渡时
+
+```css
+/* 激活状态时, react-router 自动添加类名 active */
+a.active {
+}
+/* 等待状态时, react-router 自动添加类名 pending */
+a.pending {
+}
+/* 过渡状态时, react-router 自动添加类名 transitioning */
+a.transitioning {
+}
 ```
 
-## zustand 创建并使用 store
+也可以使用 style 属性
+
+```jsx
+<NavLink
+  viewTransition
+  style={({ isActive, isPending, isTransitioning }) => {
+    return {
+      color: (() => {
+        if (isActive) return "lightpink";
+        if (isPending) return "lightgreen";
+        if (isTransitioning) return "lightblue";
+        return "black";
+      })(),
+    };
+  }}
+  to="/about"
+>
+  About
+</NavLink>
+```
+
+### useNavigate
+
+```js
+import { useNavigate } from "react-router";
+
+const navigate = useNavigate();
+navigate("/home");
+```
+
+useNavigate 参数
+
+- to 导航的目标路径
+- options
+  - replace 是否替换当前路径 (是否不保留历史记录)
+  - state 传递给目标页面的状态
+  - relative 是否使用相对路径
+  - preventScrollReset 是否阻止滚动位置重置 (是否保留当前滚动高度)
+
+### redirect
+
+例 `redirect('/login')`, 需要配合 loader 使用
+
+```jsx
+export const router = createBrowserRouter([
+  {
+    path: "/home",
+    Component: Home,
+    loader: async () => {
+      const token = await getToken();
+      if (!token) return redirect("/login");
+      return {
+        token,
+      };
+    },
+  },
+]);
+```
+
+## 边界处理
+
+- 404 页面
+- `<ErrorBoundary>`
+
+### 404 页面
+
+```jsx
+export const router = createBrowserRouter([
+  // ...
+  {
+    path: "*",
+    Component: NotFound,
+    // element: <NotFound />,
+  },
+]);
+```
+
+### `<ErrorBoundary>`
 
 ::: code-group
 
-```ts [@/store/cnt_list.ts]
-interface Store {
-  cnt: number;
-  addCnt: () => void;
-  resetCnt: () => void;
-}
-
-export const useCntAndListStore = create<Store>((set) => {
-  return {
-    cnt: 0,
-
-    addCnt: () => {
-      set((state: Store) => ({ cnt: state.cnt + 1 }));
+```tsx [@/router/index.tsx]
+export const router = createBrowserRouter([
+  {
+    path: "/about",
+    Component: About,
+    loader: async () => {
+      throw { msg: "NotFound" };
     },
-
-    resetCnt: () => {
-      set({ cnt: 0 });
-    },
-  };
-});
+    // 只有 loader 或 action 抛出错误时, 跳转到 ErrorPage 页面
+    ErrorBoundary: Error,
+  },
+]);
 ```
 
-```tsx [@/App.tsx]
-function App() {
-  const { cnt, addCnt, resetCnt } = useCntAndListStore();
-  return (
-    <>
-      <div>
-        <div>cnt: {cnt}</div>
-        <button type="button" onClick={addCnt} className="rounded border-1">
-          addCnt
-        </button>
-        <button type="button" onClick={resetCnt} className="rounded border-1">
-          resetCnt
-        </button>
-      </div>
-    </>
-  );
+```tsx [@/pages/Error.tsx]
+import { useRouteError } from "react-router";
+
+export default function Error() {
+  const err = useRouteError();
+  return <div>{err.msg}</div>;
 }
-```
-
-:::
-
-## 异步 zustand
-
-::: code-group
-
-```ts [@/store/cnt_list.ts]
-interface Store {
-  nameList: { id: number; cnName: string }[];
-  fetchList: () => Promise<void>;
-}
-
-export const useCntAndListStore = create<Store>((set) => {
-  return {
-    nameList: [],
-
-    fetchList: async () => {
-      const res = await fetch("/api/list").then((res) => res.json());
-      const { code, message, data } = res;
-      console.log(code, message);
-
-      // 修改 zustand 状态必须调用 set 方法
-      set({ nameList: data.list });
-    },
-  };
-});
-```
-
-```tsx [@/App.tsx]
-function App() {
-  const { nameList, fetchList } = useCntAndListStore();
-  // fetchList()
-  useEffect(() => {
-    fetchList(); // effect: React.EffectCallback
-    fetchList2(); // effect: React.EffectCallback
-  }, [fetchList, fetchList2]); // deps?: React.DependencyList
-
-  return (
-    <>
-      <div>nameList.length: {nameList.length}</div>
-      <ul className="flex justify-between">
-        {nameList.map((item) => (
-          <li key={item.id}>{item.cnName}</li>
-        ))}
-      </ul>
-      <button type="button" onClick={fetchList}>
-        fetchList
-      </button>
-    </>
-  );
-}
-```
-
-:::
-
-## store 切片
-
-::: code-group
-
-```ts [@/store/cnt_slice.ts]
-import { StateCreator } from "zustand";
-
-export interface CntStore {
-  cnt: number;
-  addCnt: () => void;
-  resetCnt: () => void;
-}
-
-export const createCntSlice: StateCreator<CntStore> = (set) => {
-  return {
-    cnt: 0,
-
-    addCnt: () => {
-      set((state: CntStore) => ({ cnt: state.cnt + 1 }));
-    },
-
-    resetCnt: () => {
-      set({ cnt: 0 });
-    },
-  };
-};
-```
-
-```ts [@/store/list_slice.ts]
-import { StateCreator } from "zustand";
-
-export interface ListStore {
-  nameList: { id: number; cnName: string }[];
-  fetchList: () => Promise<void>;
-}
-
-export const createListSlice: StateCreator<ListStore> = (set) => {
-  return {
-    nameList: [],
-
-    fetchList: async () => {
-      const res = await fetch("/api/list").then((res) => res.json());
-      const { code, message, data } = res;
-      console.log(code, message);
-
-      // 修改 zustand 状态必须调用 set 方法
-      set({ nameList: data.list });
-    },
-  };
-};
-```
-
-```tsx [@/store/cnt_list2.ts]
-import { create } from "zustand";
-import { type CntStore, createCntSlice } from "./cnt_slice";
-import { createListSlice, type ListStore } from "./list_slice";
-
-export const useCntAndListStore2 = create<CntStore & ListStore>((...args) => {
-  console.log(args.length);
-
-  return {
-    ...createCntSlice(...args),
-    ...createListSlice(...args),
-  };
-});
-```
-
-```tsx [@/App.tsx]
-function App() {
-  // store 实例 1, 未切片
-  const { cnt, addCnt, resetCnt, nameList, fetchList } = useCntAndListStore();
-  // store 实例 2, 切片
-  const {
-    cnt: cnt2,
-    addCnt: addCnt2,
-    resetCnt: resetCnt2,
-    nameList: nameList2,
-    fetchList: fetchList2,
-  } = useCntAndListStore2();
-
-  // fetchList()
-  useEffect(() => {
-    fetchList(); // effect: React.EffectCallback
-    fetchList2(); // effect: React.EffectCallback
-  }, [fetchList, fetchList2]); // deps?: React.DependencyList
-
-  return (
-    <>
-      <div>
-        <div>cnt: {cnt}</div>
-        <button type="button" onClick={addCnt} className="rounded border-1">
-          addCnt
-        </button>
-        <button type="button" onClick={resetCnt} className="rounded border-1">
-          resetCnt
-        </button>
-      </div>
-
-      <div>nameList.length: {nameList.length}</div>
-      <ul className="flex justify-between">
-        {nameList.map((item) => (
-          <li key={item.id}>{item.cnName}</li>
-        ))}
-      </ul>
-      <button type="button" onClick={fetchList}>
-        fetchList
-      </button>
-
-      <hr />
-
-      <div>
-        <div>cnt: {cnt2}</div>
-        <button type="button" onClick={addCnt2} className="rounded border-1">
-          addCnt2
-        </button>
-        <button type="button" onClick={resetCnt2} className="rounded border-1">
-          resetCnt2
-        </button>
-      </div>
-
-      <div>nameList2.length: {nameList2.length}</div>
-      <ul className="flex justify-between">
-        {nameList2.map((item) => (
-          <li key={item.id}>{item.cnName}</li>
-        ))}
-      </ul>
-      <button type="button" onClick={fetchList2}>
-        fetchList2
-      </button>
-    </>
-  );
-}
-
-export default App;
 ```
 
 :::
