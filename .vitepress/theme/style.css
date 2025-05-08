@@ -18,9 +18,9 @@
 
 :root {
   --vp-font-family-base: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "LXGW WenKai", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "HYWenHei", "YouYuan", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
   --vp-font-family-mono: "Iosevka Web", "Cascadia Code", "Menlo",
-    "DejaVu Sans Mono", "LXGW WenKai", "YouYuan", "Yuanti SC", "PingFang SC",
+    "DejaVu Sans Mono", "HYWenHei", "YouYuan", "Yuanti SC", "PingFang SC",
     "Microsoft YaHei", monospace !important;
 }

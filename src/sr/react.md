@@ -309,7 +309,7 @@ const [state /** 状态 */, setState /** 更新状态的函数 */] =
 ```
 
 - `const [state, setState] = useState(initialState | () => initialState);` 中, setState 是异步的, 可以提高性能
-- 多次传入相同的 newVal 调用 `setState(newVal)` 时, React 屏蔽后续更新, 即自带防抖功能
+- 多次传入相同的 newVal 调用 `setState(newVal)` 时, React 跳过后续更新, 即自带防抖功能
 - 对比 `setState(newVal)` 和 `setState((preVal) => newVal)`
 
 ```tsx
@@ -317,8 +317,8 @@ export default function UseStateDemo() {
   const [curVal, setCurVal] = useState(0);
   const handleClick = () => {
     setCurVal(curVal + 1);
-    setCurVal(curVal + 1); // 被屏蔽, 不会更新 curVal
-    setCurVal(curVal + 1); // 被屏蔽, 不会更新 curVal
+    setCurVal(curVal + 1); // 跳过, 不会更新 curVal
+    setCurVal(curVal + 1); // 跳过, 不会更新 curVal
     console.log("handleClick:", curVal); // 0, 先执行
   };
 
