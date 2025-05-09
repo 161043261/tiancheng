@@ -1,4 +1,4 @@
 {
-  "editor.fontFamily": "Iosevka, Geist Mono, Victor Mono Medium, Cascadia Code, HYWenHei, YouYuan, Yuanti SC, Microsoft YaHei, PingFang SC",
-  "cSpell.words": ["nums"]
+  "editor.fontFamily": "Iosevka, Cascadia Code SemiLight, Geist Mono, HYWenHei, YouYuan, Yuanti SC, Microsoft YaHei, PingFang SC",
+  "editor.lineHeight": 1.5
 }

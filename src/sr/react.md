@@ -1107,8 +1107,10 @@ function Parent() {
   );
 }
 
+const Demo = (props) => JSON.stringify(props);
+
 export function UseContextDemo() {
-  const [_cnt, _setCnt] = useState(777);
+  const [_cnt, _setCnt] = useState(416);
   const [cnt, setCnt] = useState(0);
   return (
     <div>
@@ -1121,7 +1123,14 @@ export function UseContextDemo() {
         <cntCtx.Provider value={{ cnt, setCnt }}>
           {/* 对于同一个 context (这里是 cntContext), 内层 context 的值会覆盖外层 context 的值 (这里 cnt 的初始值为 0) */}
           <Parent />
+          <cntCtx.Consumer>{(arg) => <Demo {...arg} />}</cntCtx.Consumer>
         </cntCtx.Provider>
+        <cntCtx.Consumer>
+          {(arg) => {
+            console.log("arg", arg);
+            return JSON.stringify(arg);
+          }}
+        </cntCtx.Consumer>
       </cntCtx.Provider>
     </div>
   );
