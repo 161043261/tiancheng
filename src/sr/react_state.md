@@ -97,7 +97,7 @@ const newData = produce(data, (draft) => {
 console.log(newData, newData === data);
 ```
 
-### zustand 中使用 immer
+### zustand 中使用 immer 中间件
 
 ::: code-group
 
@@ -319,3 +319,255 @@ export default function Kun() {
   );
 }
 ```
+
+## 中间件
+
+官方中间件: immer, devtools
+
+案例: 深层次状态 + logger 中间件
+
+::: code-group
+
+```ts [vanilla]
+//! vanilla
+const useKunStore = create<IKun>((set) => ({
+  name: "Kun",
+  age: 18,
+  hobbies: {
+    sing: "唱",
+    dance: "跳",
+    rap: "rap",
+    basketball: "篮球",
+  },
+  setSing: (newSing: string) =>
+    set((state) => {
+      return {
+        // ...state, // optional
+        hobbies: {
+          ...state.hobbies,
+          sing: newSing,
+        },
+      };
+    }),
+  setDance: (newDance: string) =>
+    set((state) => {
+      return {
+        // ...state, // optional
+        hobbies: {
+          ...state.hobbies,
+          dance: newDance,
+        },
+      };
+    }),
+}));
+```
+
+```tsx [immer]
+//! immer
+const useKunStore2 = create<IKun>()(
+  immer((set) => ({
+    name: "Kun",
+    age: 18,
+    hobbies: {
+      sing: "唱",
+      dance: "跳",
+      rap: "rap",
+      basketball: "篮球",
+    },
+    setSing: (newSing: string) =>
+      set((state) => {
+        state.hobbies.sing = newSing;
+      }),
+    setDance: (newDance: string) =>
+      set((state) => {
+        state.hobbies.dance = newDance;
+      }),
+  })),
+);
+```
+
+```ts [vanilla + logger]
+const logger: any = (fn: any) => (set: any, get: any, storeApi: any) => {
+  const loggedSet = (...args: any) => {
+    console.log("Before setting", get(), storeApi);
+    set(...args);
+    console.log("After setting", get(), storeApi);
+  };
+  return fn(loggedSet, get, storeApi);
+};
+
+//! vanilla + logger
+const useKunStore3 = create<IKun>()(
+  logger((set: any) => ({
+    name: "Kun",
+    age: 18,
+    hobbies: {
+      sing: "唱",
+      dance: "跳",
+      rap: "rap",
+      basketball: "篮球",
+    },
+    setSing: (newSing: string) =>
+      set((state: any) => {
+        return {
+          // ...state, // optional
+          hobbies: {
+            ...state.hobbies,
+            sing: newSing,
+          },
+        };
+      }),
+    setDance: (newDance: string) =>
+      set((state: any) => {
+        return {
+          // ...state, // optional
+          hobbies: {
+            ...state.hobbies,
+            dance: newDance,
+          },
+        };
+      }),
+  })),
+);
+```
+
+```ts [immer + logger]
+const logger: any = (fn: any) => (set: any, get: any, storeApi: any) => {
+  const loggedSet = (...args: any) => {
+    console.log("Before setting", get(), storeApi);
+    set(...args);
+    console.log("After setting", get(), storeApi);
+  };
+  return fn(loggedSet, get, storeApi);
+};
+
+//! immer + logger
+const useKunStore4 = create<IKun>()(
+  immer(
+    logger((set: any) => ({
+      name: "Kun",
+      age: 18,
+      hobbies: {
+        sing: "唱",
+        dance: "跳",
+        rap: "rap",
+        basketball: "篮球",
+      },
+      setSing: (newSing: string) =>
+        set((state: any) => {
+          state.hobbies.sing = newSing;
+        }),
+      setDance: (newDance: string) =>
+        set((state: any) => {
+          state.hobbies.dance = newDance;
+        }),
+    })),
+  ),
+);
+```
+
+:::
+
+### devtools 中间件
+
+```ts
+import { devtools } from "zustand/middleware";
+
+// immer + devtools
+const useKunStore4 = create<IKun>()(
+  immer(
+    // devtools 必须写在 immer 的内部
+    devtools(
+      (set: any) => ({
+        name: "Kun",
+        age: 18,
+        hobbies: {
+          sing: "唱",
+          dance: "跳",
+          rap: "rap",
+          basketball: "篮球",
+        },
+        setSing: (newSing: string) =>
+          set((state: any) => {
+            state.hobbies.sing = newSing;
+          }),
+        setDance: (newDance: string) =>
+          set((state: any) => {
+            state.hobbies.dance = newDance;
+          }),
+      }),
+      {
+        name: "kunStore4" /** store 名 */,
+        enabled: true /** 是否开启 devtools */,
+      },
+    ),
+  ),
+);
+```
+
+### persist 持久化中间件
+
+::: code-group
+
+```ts [@/store/kun.ts]
+import { persist, createJSONStorage } from "zustand/middleware";
+
+//! immer + persist
+const useKunStore2 = create<IKun>()(
+  immer(
+    persist(
+      (set) => ({
+        name: "Kun",
+        age: 18,
+        hobbies: {
+          sing: "唱",
+          dance: "跳",
+          rap: "rap",
+          basketball: "篮球",
+        },
+        setSing: (newSing: string) =>
+          set((state) => {
+            state.hobbies.sing = newSing;
+          }),
+        setDance: (newDance: string) =>
+          set((state) => {
+            state.hobbies.dance = newDance;
+          }),
+      }),
+      {
+        name: "kunStore2", // localStorage (sessionStorage, IndexedDB, ...) 的 key 值
+        storage: createJSONStorage(() => localStorage), // 默认 localStorage
+        partialize: (state) => ({
+          // 部分持久化
+          name: state.name,
+          age: state.age,
+        }),
+      },
+    ),
+  ),
+);
+```
+
+```tsx [@/pages/Kun.tsx]
+export function KunMiddle2() {
+  console.log("Update KunMiddle2 (immer)");
+  const { name, sing } = useKunStore2(
+    useShallow((state) => ({
+      name: state.name,
+      sing: state.hobbies.sing,
+    })),
+  );
+
+  // 清空 localStorage (sessionStorage, IndexedDB, ...)
+  const clearStorage = () => useKunStore2.persist.clearStorage();
+  return (
+    <div className="bg-green-300">
+      <div>name: {name}</div>
+      <div>sing: {sing}</div>
+      <button onClick={() => clearStorage()}></button>
+    </div>
+  );
+}
+```
+
+:::
