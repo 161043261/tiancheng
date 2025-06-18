@@ -4,7 +4,7 @@ layout: home
 hero:
   name: htccc
   text: htccc
-  tagline: 'QQ: 161043261'
+  tagline: "QQ: 161043261"
   image:
     src: /hero.svg
     alt: hero

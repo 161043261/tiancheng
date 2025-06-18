@@ -2,22 +2,6 @@
 
 windows 改 bbr
 
-```sh
-Get-NetTCPSetting | Select SettingName,CongestionProvider
-
-netsh int tcp set supplemental Template=Compat CongestionProvider=BBR2
-netsh int tcp set supplemental Template=Datacenter CongestionProvider=BBR2
-netsh int tcp set supplemental Template=DatacenterCustom CongestionProvider=BBR2
-netsh int tcp set supplemental Template=Internet CongestionProvider=BBR2
-netsh int tcp set supplemental Template=InternetCustom CongestionProvider=BBR2
-
-netsh int tcp set supplemental template=Compat CongestionProvider=NewReno
-netsh int tcp set supplemental template=Datacenter CongestionProvider=CUBIC
-netsh int tcp set supplemental template=DatacenterCustom CongestionProvider=CUBIC
-netsh int tcp set supplemental template=Internet CongestionProvider=CUBIC
-netsh int tcp set supplemental template=InternetCustom CongestionProvider=CUBIC
-```
-
 ## BBR 设计动机
 
 BBR 前, 主流的 TCP 拥塞控制算法都以数据包丢失 (loss-based) 作为网络拥塞的信号, 这种不太合理的 "等价" 最早可以追溯到 1980s 到 1990s，当时的链路容量和缓冲区容量分别以 Mbps 和 KB 计, 参考现在的标准, 链路质量可以说很差

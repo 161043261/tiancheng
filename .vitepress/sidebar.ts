@@ -14,6 +14,7 @@ export default {
         { text: "网络(1)", link: "/b/network" },
         { text: "网络(2)", link: "/b/network2" },
         { text: "VSCode", link: "/b/vscode" },
+        { text: "消息队列", link: "/b/mq" },
       ],
     },
   ],
