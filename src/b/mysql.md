@@ -1,99 +1,121 @@
 # MySQL
 
-## 第一章 SQL
+## 说明
 
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '0228';
+- `<databaseName>` 表示必填的「数据库名」
+- `[-D <databaseName>]` 表示「指定数据库名」是可选的
 
+```bash
+alter user 'root'@'localhost' identified with mysql_native_password BY 'pass';
 flush privileges;
-
 sudo systemctl restart mysql
 
-### 1.1 DDL
-
-- 数据 (Data)
-- 数据库 (Database, DB) : 长期存储在计算机内有组织, 可共享的大量数据的集合
-- 数据库管理系统 (Database Management System, DBMS) : 用户与操作系统之间的数据管理软件
-- 数据库系统 (Database System, DBS) : 由数据库, 数据库管理系统, 应用程序, 数据库管理员 (Database Administrator, DBA) 组成
-- 数据定义语言 (DDL, Data Definition Language)
-- 数据操作语言 (DML, Data Manipulation Language
-- 数据查询语言 (DQL, Data Query Language)
-- 数据控制语言 (DCL, Data Control Language)
-
-```shell
-mysql -u root -proot [-D database]
-mysqladmin -u username -p command
-mysqladmin -u root -p status
+# -p 后面没有空格
+mysql -u <username> -p<password> [-D <databaseName>]
 ```
+
+## 创建、修改表
 
 ```sql
-# 查询所有数据库
-SHOW DATABASES;
-# 创建数据库
-CREATE DATABASE [IF NOT EXISTS] databaseName [DEFAULT CHARSET charsetName] [COLLATE collationName];
-CREATE DATABASE IF NOT EXISTS datebaseName DEFAULT CHARSET utf8mb3 COLLATE utf8mb3_general_ci;
-# 使用数据库
-USE databaseName;
-# 查询当前数据库
-SELECT DATABASE();
-# 删除数据库
-DROP DATABASE [IF EXISTS] databaseNames;
-# 查询当前数据库的所有表
-SHOW TABLES;
-# 创建表
-CREATE TABLE tableName (
-    primaryKey  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,  # 无符号整型自增主键
-    columnName0 VARCHAR(16) NOT NULL UNIQUE,              # 非空唯一变长字符串
-    columnName1 BOOLEAN DEFAULT TRUE,                     # 默认TRUE
-    columnName2 INT CHECK (columnName2 BETWEEN 0 AND 100) # 检查约束
+-- 查询所有数据库
+show databases;
+
+-- 创建数据库
+create database [if not exists] <databaseName> [default charset <charsetName>] [collate collateName];
+-- e.g.
+create database if not exists db0 default charset utf8mb3 collate utf8mb3_general_ci;
+
+-- 使用数据库
+use <databaseName>;
+
+-- 查询当前数据库
+select database();
+
+-- 删除数据库
+drop database [if exists] <databaseName>;
+drop database [if exists] <databaseName>, <databaseName2>, ...;
+
+-- 查询当前数据库的所有表
+show tables;
+show tables from <databaseName>;
+
+-- 创建表
+create table [if not exists] <tableName> (
+  <primaryKey>  int unsigned auto_increment primary key,  -- 无符号整型自增主键
+  <columnName2> varchar(160) not null unique,              -- 非空唯一变长字符串
+  <columnName3> boolean default true,                     -- 默认 true
+  <columnName4> int check (columnName2 between 0 and 100) -- 检查约束
 )
-    COLLATE utf8mb3_general_ci # 使用utf8mb3_general_ci排序规则
-    DEFAULT CHARSET = utf8mb3 # 使用utf8mb3字符集
-    ENGINE = InnoDB; # 设置存储引擎为InnoDB
-# 查询表结构
-DESC tableName;
-# 查询创建表的SQL
-SHOW CREATE TABLE tableName;
-# 增加列
-ALTER TABLE tableName ADD columnName dataType;
-# 修改列的数据类型
-ALTER TABLE tableName MODIFY columnName newDataType;
-# 修改列的列名和数据类型
-ALTER TABLE tableName CHANGE oldColumnName newColumnName dataType;
-# 删除列
-ALTER TABLE tableName DROP columnNames;
-# 修改表名
-ALTER TABLE oldTableName RENAME TO newTableName;
-# 删除表
-DROP TABLE [IF EXISTS] tableNames;
-# 删除, 再创建该表
-TRUNCATE TABLE tableName;
+  collate utf8mb3_general_ci -- 使用 utf8mb3_general_ci 排序规则
+  default charset = utf8mb3  -- 使用 utf8mb3 字符集
+  engine = InnoDB;           -- 使用 InnoDB 存储引擎
+
+-- 描述表结构
+desc <tableName>;
+-- 等价于
+describe <tableName>;
+explain <tableName>;
+show columns from <tableName>;
+show fields from <tableName>;
+
+-- 查询创建表的 sql
+show create table <tableName>;
+-- 格式化输出
+show create table <tableName> \G;
+
+-- 删除表
+drop table [if exists] <tableName>;
+drop table [if exists] <tableName>, <tableName2>, ...;
+
+-- 清空表
+truncate table <tableName>
+
+-- 增加字段
+alter table <tableName> add <newColumnName> <dataType>;
+
+-- 在指定字段的后面增加字段
+alter table <tableName> add <newColumnName> <dataType> after <columnName>;
+
+-- 删除字段
+alter table <tableName> drop <columnName>;
+
+-- 修改字段的数据类型 (modify)
+alter table <tableName> modify <columnName> <dataType>;
+
+-- 修改字段的字段名和数据类型 (change)
+alter table <tableName> change <oldColumnName> <newColumnName> <dataType>;
+
+-- 修改表名
+alter table <oldTableName> rename <newTableName>;
 ```
 
-| 数据类型       | 大小           | 描述                |
-| -------------- | -------------- | ------------------- |
-| tinyint        | 1 byte         | 极小整数            |
-| smallint       | 2 bytes        | 小整数              |
-| mediumint      | 3 bytes        | 整数                |
-| int 或 integer | 4 bytes        | 大整数              |
-| bigint         | 8 bytes        | 极大整数            |
-| float          | 4 bytes        | 单精度浮点数        |
-| double         | 8 bytes        | 双精度浮点数        |
-| decimal        |                | 小数                |
-| char           | 0~2^8-1 bytes  | 定长字符串          |
-| varchar        | 0~2^16-1 bytes | 变长字符串          |
-| tinyblob       | 0~2^8-1 bytes  | 极短二进制数据      |
-| tinytext       | 0~2^8-1 bytes  | 极短文本数据        |
-| blob           | 0~2^16-1 bytes | 短二进制数据        |
-| text           | 0~2^16-1 bytes | 短文本数据          |
-| mediumblob     | 0~2^24-1 bytes | 二进制数据          |
-| mediumtext     | 0~2^24-1 bytes | 文本数据            |
-| longblob       | 0~2^32-1 bytes | 长二进制数据        |
-| longtext       | 0~2^32-1 bytes | 长文本数据          |
-| date           | 3 bytes        | yyyy-mm-dd          |
-| time           | 3 bytes        | hh:mm:ss            |
-| year           | 1 bytes        | yyyy                |
-| datetime       | 8 bytes        | yyyy-mm-dd hh:mm:ss |
-| timestamp      | 4 bytes        | yyyy-mm-dd hh:mm:ss |
+## 数据类型
+
+| 数据类型       | 大小             | 描述                |
+| -------------- | ---------------- | ------------------- |
+| tinyint        | 1 byte           | 极小整数            |
+| smallint       | 2 bytes          | 小整数              |
+| mediumint      | 3 bytes          | 中整数              |
+| int 或 integer | 4 bytes          | 大整数              |
+| bigint         | 8 bytes          | 极大整数            |
+| float          | 4 bytes          | 单精度浮点数        |
+| double         | 8 bytes          | 双精度浮点数        |
+| decimal        |                  | 小数                |
+| char           | 0 ~ 2^8-1 bytes  | 定长字符串          |
+| varchar        | 0 ~ 2^16-1 bytes | 变长字符串          |
+| tinyblob       | 0 ~ 2^8-1 bytes  | 极短二进制数据      |
+| tinytext       | 0 ~ 2^8-1 bytes  | 极短文本数据        |
+| blob           | 0 ~ 2^16-1 bytes | 短二进制数据        |
+| text           | 0 ~ 2^16-1 bytes | 短文本数据          |
+| mediumblob     | 0 ~ 2^24-1 bytes | 二进制数据          |
+| mediumtext     | 0 ~ 2^24-1 bytes | 文本数据            |
+| longblob       | 0 ~ 2^32-1 bytes | 长二进制数据        |
+| longtext       | 0 ~ 2^32-1 bytes | 长文本数据          |
+| date           | 3 bytes          | yyyy-mm-dd          |
+| time           | 3 bytes          | hh:mm:ss            |
+| year           | 1 bytes          | yyyy                |
+| datetime       | 8 bytes          | yyyy-mm-dd hh:mm:ss |
+| timestamp      | 4 bytes          | yyyy-mm-dd hh:mm:ss |
 
 ### 1.2 DML
 
