@@ -8,16 +8,15 @@
 ```bash
 alter user 'root'@'localhost' identified with mysql_native_password BY 'pass';
 flush privileges;
-sudo systemctl restart mysql
+sudo systemctl restart mysql;
 
 # -p 后面没有空格
-mysql -u <username> -p<password> [-D <databaseName>]
+mysql -u <username> -p<password> [-D <databaseName>];
 ```
 
-- 函数: 字符串函数, 数值函数, 日期函数, 流程函数
-- 外键
-- 内连接, 外连接, 自连接
-- 事务
+
+### 高级
+
 - 存储引擎
 - 索引
 - SQL 优化
@@ -37,7 +36,7 @@ mysql -u <username> -p<password> [-D <databaseName>]
 show databases;
 
 -- 创建数据库
-create database [if not exists] <databaseName> [default charset <charsetName>] [collate collateName];
+create database [if not exists] <databaseName> [default charset <charsetName>] [collate <collateName>];
 -- e.g.
 create database if not exists db0 default charset utf8mb3 collate utf8mb3_general_ci;
 
@@ -49,7 +48,7 @@ select database();
 
 -- 删除数据库
 drop database [if exists] <databaseName>;
-drop database [if exists] <databaseName>, <databaseName2>, ...;
+drop database [if exists] <databaseName1>, <databaseName2>, ...;
 
 -- 查询当前数据库的所有表
 show tables;
@@ -137,17 +136,17 @@ alter table <oldTableName> rename <newTableName>;
 
 ```sql
 -- 插入
-insert into <tableName> (<column1>, <column2>, ...)
+insert into <tableName> (<columnName1>, <columnName2>, ...)
 values (<row1value1>, <row2value2>, ...), (<row2value1>, <row2value2>, ...), ...;
 -- All columns
 insert into <tableName>
 values (<row1value1>, <row2value2>, ...), (<row2value1>, <row2value2>, ...), ...;
 
 -- 更新
-update <tableName> set <column1> = <value1>, <column2> = <value2>, ... [where <condition_expr>];
+update <tableName> set <columnName1> = <value1>, <columnName2> = <value2>, ... [where <conditionExpr>];
 
 -- 删除
-delete from <tableName> [where <condition_expr>];
+delete from <tableName> [where <conditionExpr>];
 ```
 
 ## 查询
@@ -161,19 +160,19 @@ delete from <tableName> [where <condition_expr>];
 - is [not] null
 
 ```sql
-select [distinct] <column1> [as <alias1>], <column2> [as <alias2>], ... -- distinct 去重
+select [distinct] <columnName1> [as <alias1>], <columnName2> [as <alias2>], ... -- distinct 去重
 
 from <tableName>
 
-where <condition_expr>                                 -- where 分组前过滤
+where <conditionExpr>                                            -- where 分组前过滤
 
-group by <column1>, <column2>, ...                     -- group by 分组字段列表
+group by <columnName1>, <columnName2>, ...                       -- group by 分组字段列表
 
-having <condition_expr>                                -- having 分组后过滤
+having <conditionExpr>                                           -- having 分组后过滤
 
-order by <column1> [asc]|desc, column2 [asc]|desc, ... -- order by 排序查询
+order by <columnName1> [asc]|desc, <columnName2> [asc]|desc, ... -- order by 排序查询
 
-limit <startIndex>, <pageSize>;                        -- limit 分页查询
+limit <startIndex>, <pageSize>;                                  -- limit 分页查询
 ```
 
 ### 聚合函数
@@ -213,10 +212,10 @@ drop user '<username>'@'<hostname>';
 show grants for '<username>'@'<hostname>';
 
 -- 授予权限
-grant <privilegeName1>, <privilegeNam2>, ... on <databaseName>.<tableName> to '<username>'@'hostname';
+grant <privilegeName1>, <privilegeName2>, ... on <databaseName>.<tableName> to '<username>'@'hostname';
 
 -- 撤销权限
-revoke <privilegeName1>, <privilegeNam2>, ... on <databaseName>.<tableName> from '<username>'@'<hostname>';
+revoke <privilegeName1>, <privilegeName2>, ... on <databaseName>.<tableName> from '<username>'@'<hostname>';
 ```
 
 ## 函数
@@ -268,66 +267,103 @@ revoke <privilegeName1>, <privilegeNam2>, ... on <databaseName>.<tableName> from
 
 等价于 `if (expr == val1) return ret1; if (expr == val2) return ret2; ... return default`
 
-```shell
-# 字符串函数
-CONCAT, LOWER, UPPER, LPAD, RPAD, TRIM, SUBSTRING
-# 数值函数
-CEIL, FLOOR, MOD, RAND, ROUND
-# 日期函数
-CURDATE, CURTIME, NOW, YEAR, MONTH, DAY, DATE_ADD, DATEDIFF
-# 流程函数
-IF, IFNULL, CASE [...] WHEN ... THEN ...  ELSE ... END
-```
-
-### 1.6 约束
+## 约束
 
 | 约束     | 关键字      |
-| -------- | :---------- |
-| 非空约束 | NOT NULL    |
-| 唯一约束 | UNIQUE      |
-| 主键约束 | PRIMARY KEY |
-| 默认约束 | DEFAULT     |
-| 检查约束 | CHECK       |
-| 外键约束 | FOREIGN KEY |
+| -------- | ----------- |
+| 非空约束 | not null    |
+| 唯一约束 | unique      |
+| 主键约束 | primary key |
+| 默认约束 | default     |
+| 检查约束 | check       |
+| 外键约束 | foreign key |
 
 ```sql
-CREATE TABLE tableName (
-    primaryKey  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,  # 无符号整型自增主键
-    columnName0 VARCHAR(16) NOT NULL UNIQUE,              # 非空唯一变长字符串
-    columnName1 BOOLEAN DEFAULT TRUE,                     # 默认TRUE
-    columnName2 INT CHECK (columnName2 BETWEEN 0 AND 100) # 检查约束
+create table <tableName> (
+  <primaryKey>  int unsigned auto_increment primary key,    -- 主键约束: 无符号整型自增主键
+  <columnName2> varchar(16) not null unique,                -- 非空约束、唯一约束: 非空唯一变长字符串
+  <columnName3> boolean default true,                       -- 默认约束: 默认 true
+  <columnName4> int check (<columnName4> between 0 and 100) -- 检查约束
 );
 ```
 
+### 外键约束
+
 外键: 关联两表的数据, 保证数据的一致性, 完整性
 
-### 1.7 多表查询
 
-1. 一对多: "多的一方"的外键, 关联"一的一方"的主键
-2. 多对多: 创建中间表, 中间表至少有 2 个外键, 分别关联两方的主键
-3. 一对一: 一方的外键, 关联另一方的主键, 外键唯一 (UNIQUE)
+```sql
+-- 创建子表时, 添加从子表某列指向父表某列的外键
+create table <tableName> (
+  [constraint] [<foreignKeyName>] foreign key (<columnName>) references <foreignTableName> (<foreignColumnName>);
+)
 
-多表查询分类
+-- 修改子表时, 添加从子表某列指向父表某列的外键
+alter table <tableName> add constraint <foreignKeyName> foreign key (<columnName>) references <foreignTableName> <foreignColumnName>;
+-- e.g. 添加从 t_emp 员工表 (子表) dep_id 字段指向 t_dep 部门表 (父表) id 字段的外键
+alter table t_emp add constraint fk_emp_dep_id foreign key (dep_id) references t_dep id;
+
+-- 删除外键
+alter table <tableName> drop foreign key <foreignKeyName>;
+```
+
+场景: 从 t_emp 员工表 (子表) dep_id 字段指向 t_dep 部门表 (父表) id 字段的外键
+
+### no action/restrict
+
+t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_emp 员工表 (子表) 中存在 dep_id == 该 id 的记录, 则不允许删除/更新
+
+### cascade
+
+t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 时, 如果 t_emp 员工表 (子表) 中存在 dep_id == 该 id 的记录, 则同时删除/更新子表中的记录
+
+### set null
+
+t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_emp 员工表 (子表) 中存在 dep_id == 该 id 的记录, 则将子表中, 记录的 dep_id 字段值设置为 null
+
+### set default
+
+t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_emp 员工表 (子表) 中存在 dep_id == 该 id 的记录, 则将子表中, 记录的 dep_id 字段值设置为默认值 (InnoDB 不支持)
+
+## 多表查询
+
+1. 一对多: 部门表 -> 员工表; 通常为 "多" (员工表, 子表) 建立外键 (foreign key), 指向 "一" 的主键 (部门表, 父表)
+2. 多对多: 学生表 -> 课程表; 通常创建中间表, 中间表有 2 个外键, 分别指向两个表的主键, 即转换为「学生表 -> 中间表」,「课程表 -> 中间表」两个一对多问题
+3. 一对一: 常用于单表拆分, 基本字段放在一个表中, 详情字段放在另一个表中; 通常详情表的外键 (user_id), 指向基础表的主键 (id), 并且外键所在的列使用唯一约束
+
+### 多表查询分类
 
 - 连接查询
-  - 内连接: L∩R
-  - 外连接: 左外连接: L 和 L∩R; 右外连接: R 和 L∩R
-  - 自连接
+  - 内连接: 查询 left 表、right 表交集的数据
+  - 外连接
+    - 左外连接: 查询 left 表、和 left 表、right 表交集的数据
+    - 右外连接: 查询 right 表、和 left 表、right 表交集的数据
+  - 自连接: left 表 == right 表 == 自身, 自连接必须使用表别名
 - 子查询
 
 连接查询
 
 ```sql
-# 隐式内连接
-SELECT columnNames FROM table1, table2 WHERE conditions;
-# 显式内连接
-SELECT columnNames FROM table1 [INNER] JOIN table2 ON conditions;
-# 左外连接
-SELECT columnNames FROM table1 LEFT [OUTER] JOIN table2 ON conditions;
-# 右外连接
-SELECT columnNames FROM table1 RIGHT [OUTER] JOIN table2 ON conditions;
-# 自连接
-SELECT columnNames FROM tableName alias1 JOIN tableName alias2 ON conditions;
+-- 隐式内连接
+select <columnName1>, <columnName2>, ... from <tableName1>, <tableName2> where <conditionExpr>;
+-- e.g. 查询每一个员工的姓名, 和关联的的部门名
+select t_emp.name, t_dep.name from t_emp, t_dep where t_emp.dep_id = t_dep.id;
+
+-- 显式内连接
+select <columnName1>, <columnName2>, ... from <tableName1> [inner] join <tableName2> on <conditionExpr>;
+-- e.g.
+select e.name, d.name from t_emp as e inner join t_dep as d on e.dep_id = d.id; -- as 可省略
+
+-- 左外连接
+select <columnName1>, <columnName2>, ... from <tableName1> left [outer] join <tableName2> on <conditionExpr>;
+-- e.g. 查询 t_
+
+
+-- 右外连接
+select <columnName1>, <columnName2>, ... from <tableName1> right [outer] join <tableName2> on <conditionExpr>;
+
+-- 自连接
+select <columnName1>, <columnName2>, ... from <tableName> <alias1> join <tableName> <alias2> ON <conditionExpr>;
 ```
 
 联合查询: 联合查询的列数, 列类型应相同
