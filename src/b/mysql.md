@@ -14,7 +14,23 @@ sudo systemctl restart mysql
 mysql -u <username> -p<password> [-D <databaseName>]
 ```
 
-## 创建、修改表
+- 函数: 字符串函数, 数值函数, 日期函数, 流程函数
+- 外键
+- 内连接, 外连接, 自连接
+- 事务
+- 存储引擎
+- 索引
+- SQL 优化
+- 视图
+- 存储过程
+- 触发器
+- 锁
+- 日志
+- 主从复制
+- 分库分表
+- 读写分离
+
+## 创建表, 修改表
 
 ```sql
 -- 查询所有数据库
@@ -42,7 +58,7 @@ show tables from <databaseName>;
 -- 创建表
 create table [if not exists] <tableName> (
   <primaryKey>  int unsigned auto_increment primary key,  -- 无符号整型自增主键
-  <columnName2> varchar(160) not null unique,              -- 非空唯一变长字符串
+  <columnName2> varchar(160) not null unique,             -- 非空唯一变长字符串
   <columnName3> boolean default true,                     -- 默认 true
   <columnName4> int check (columnName2 between 0 and 100) -- 检查约束
 )
@@ -117,69 +133,140 @@ alter table <oldTableName> rename <newTableName>;
 | datetime       | 8 bytes          | yyyy-mm-dd hh:mm:ss |
 | timestamp      | 4 bytes          | yyyy-mm-dd hh:mm:ss |
 
-### 1.2 DML
+## 插入, 更新, 删除
 
 ```sql
-# 插入
-INSERT INTO tableName (column1, column2, ...) VALUES (value1, value2, ...), (value1, value2, ...), ...;
-INSERT INTO tableName VALUES (value1, value2, ...), (value1, value2, ...), ...; # all columns
-# 更新
-UPDATE tableName SET column1 = value1, column2 = value2, ... [WHERE conditions];
-# 删除
-DELETE FROM tableName [WHERE conditions];
+-- 插入
+insert into <tableName> (<column1>, <column2>, ...)
+values (<row1value1>, <row2value2>, ...), (<row2value1>, <row2value2>, ...), ...;
+-- All columns
+insert into <tableName>
+values (<row1value1>, <row2value2>, ...), (<row2value1>, <row2value2>, ...), ...;
+
+-- 更新
+update <tableName> set <column1> = <value1>, <column2> = <value2>, ... [where <condition_expr>];
+
+-- 删除
+delete from <tableName> [where <condition_expr>];
 ```
 
-### 1.3 DQL
+## 查询
+
+- and &&
+- or ||
+- not !
+- between l and r 左闭右闭 [l, r]
+- in `Array.prototype.includes`
+- like 通配符 (\_ 匹配单个字符, % 匹配任意个字符)
+- is [not] null
 
 ```sql
-# AND &&
-# OR  ||
-# NOT !
-# BETWEEN ... AND ... (左闭右闭)
-# IN
-# LIKE 通配符 (_匹配单个字符, %匹配任意个字符)
-# IS [NOT] NULL
+select [distinct] <column1> [as <alias1>], <column2> [as <alias2>], ... -- distinct 去重
 
-SELECT [DISTINCT] column1 [AS] alias1, column2 [AS] alias2, ... # DISTINCT去重
-FROM tableName
-WHERE conditions # WHERE分组前过滤
-GROUP BY columnNames # 分组查询
-HAVING conditions # HAVING分组后过滤
-ORDER BY columnName1 [ASC]|DESC, columnName2 [ASC]|DESC, ... # 排序查询
-LIMIT startIndex, number; # 分页查询
+from <tableName>
+
+where <condition_expr>                                 -- where 分组前过滤
+
+group by <column1>, <column2>, ...                     -- group by 分组字段列表
+
+having <condition_expr>                                -- having 分组后过滤
+
+order by <column1> [asc]|desc, column2 [asc]|desc, ... -- order by 排序查询
+
+limit <startIndex>, <pageSize>;                        -- limit 分页查询
 ```
 
-聚合函数 (Transact SQL)
+### 聚合函数
 
-- NULL 值不参与聚合函数的运算
-- where 条件中没有聚合函数, having 条件中可以有聚合函数
+- count, max, min, avg, sum
+- null 值不参与聚合函数的计算
+- where 条件中不能有聚合函数, having 条件中可以有聚合函数
+
+## 用户管理, 权限控制
+
+| 权限                | 说明                       |
+| ------------------- | -------------------------- |
+| all, all privileges | 所有权限                   |
+| select              | 查询权限                   |
+| insert              | 插入权限                   |
+| update              | 修改权限                   |
+| delete              | 删除权限                   |
+| alter               | 修改表的权限               |
+| drop                | 删除数据库, 表, 视图的权限 |
+| create              | 创建数据库, 表的权限       |
 
 ```sql
-# 聚合函数count, max, min, avg, sum
-SELECT TransactSQL(columnName) FROM tableName;
+-- 查询用户
+use mysql;
+select * from user;
+
+-- 创建用户
+create user '<username>'@'<hostname>' identified by '<password>';
+
+-- 修改用户密码
+alter user '<username>'@'<hostname>' identified with mysql_native_password by '<newPassword>';
+
+-- 删除用户
+drop user '<username>'@'<hostname>';
+
+-- 查询权限
+show grants for '<username>'@'<hostname>';
+
+-- 授予权限
+grant <privilegeName1>, <privilegeNam2>, ... on <databaseName>.<tableName> to '<username>'@'hostname';
+
+-- 撤销权限
+revoke <privilegeName1>, <privilegeNam2>, ... on <databaseName>.<tableName> from '<username>'@'<hostname>';
 ```
 
-### 1.4 DCL
+## 函数
 
-```shell
-# 查询用户
-USE mysql;
-SELECT * FROM user;
-# 创建用户
-CREATE USER 'username'@'hostName' IDENTIFIED BY 'password';
-# 修改用户密码
-ALTER USER 'username'@'hostName' IDENTIFIED WITH mysql_native_password BY 'newPassword';
-# 删除用户
-DROP USER 'username'@'hostName';
-# 查询权限
-SHOW GRANTS FOR 'username'@'hostName';
-# 授予权限
-GRANT grantNames ON databaseName.tableName TO 'username'@'hostName';
-# 撤销权限
-REVOKE grantNames ON databaseName.tableName FROM 'username'@'hostName';
-```
+### 字符串函数
 
-### 1.5 函数
+- concat(s1, s2, ...)
+- lower(str)
+- upper(str)
+- lpad(str, n, padStr)
+- rpad(str, n, padStr)
+- trim(str)
+- substring(str, start, len)
+
+### 数值函数
+
+- ceil(x)
+- floor(x)
+- mod(x, y)
+- rand()
+- round(x, y)
+
+### 日期函数
+
+- curdate()
+- curtime()
+- now()
+- year(date)
+- month(date)
+- day(date)
+- date_add(date, interval)
+- datediff(date1, date2)
+
+### 流程函数
+
+`if(<cond>, <ret1>, <ret2>)`
+
+等价于 `return cond ? ret1 : ret2;`
+
+`ifnull(<val1>, <val2>)`
+
+等价于 `return val1 != null ? val1 : val2;`
+
+`case when <cond1> then <ret1> when <cond2> then <ret2> ... else <default> end`
+
+等价于 `if (cond1) return ret1; if (cond2) return ret2; ... return default;`
+
+`case <expr> when <val1> then <ret1> when <val2> then <ret2> ... else <default> end`
+
+等价于 `if (expr == val1) return ret1; if (expr == val2) return ret2; ... return default`
 
 ```shell
 # 字符串函数
