@@ -20,12 +20,10 @@ hero:
       link: /t/d2vue
 
 features:
-  - title: 语言和工具
-    details: cpp, go, javascript, typescript, nodejs, docker, git, linux, nginx
+  - title: 基础
+    details: Cpp, Go, JavaScript, TypeScript, Node.js, Linux, Git, Docker, Nginx
   - title: 前端
-    details: html, css, sass, tailwindcss, npm, pnpm, vue, pinia, vue-router, react, zustand, react-router, electron, rollup, webpack, vite
+    details: HTML, CSS, Sass, Tailwind, Npm, Pnpm, Vue, vue-router, Pinia, React, react-router, Zustand, Electron, Rollup, Webpack, Vite
   - title: 后端
-    details: express, koa, nestjs, mongodb, mysql, redis, kafka
-  - title: TODO List
-    details: rollup, webpack, mysql, redis, kafka
+    details: Express, Koa, Nest, MongoDB, MySQL, Redis, Kafka, HTTP, RPC
 ---
