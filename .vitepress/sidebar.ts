@@ -11,6 +11,7 @@ export default {
         { text: "Git", link: "/b/git" },
         { text: "Linux", link: "/b/linux" },
         { text: "MySQL", link: "/b/mysql" },
+        { text: "Redis", link: "/b/redis" },
         { text: "网络(1)", link: "/b/network" },
         { text: "网络(2)", link: "/b/network2" },
         { text: "VSCode", link: "/b/vscode" },
