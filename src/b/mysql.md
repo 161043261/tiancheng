@@ -4,6 +4,7 @@
 
 - `<databaseName>` 表示必填的「数据库名」
 - `[-D <databaseName>]` 表示「指定数据库名」是可选的
+- `{read uncommitted | read committed | repeatable read | serializable}` 表示四种事务隔离级别中的一种
 
 ```bash
 alter user 'root'@'localhost' identified with mysql_native_password BY 'pass';
@@ -14,9 +15,9 @@ sudo systemctl restart mysql;
 mysql -u <username> -p<password> [-D <databaseName>];
 ```
 
-
 ### 高级
 
+- 事务
 - 存储引擎
 - 索引
 - SQL 优化
@@ -291,7 +292,6 @@ create table <tableName> (
 
 外键: 关联两表的数据, 保证数据的一致性, 完整性
 
-
 ```sql
 -- 创建子表时, 添加从子表某列指向父表某列的外键
 create table <tableName> (
@@ -329,7 +329,7 @@ t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_em
 
 1. 一对多: 部门表 -> 员工表; 通常为 "多" (员工表, 子表) 建立外键 (foreign key), 指向 "一" 的主键 (部门表, 父表)
 2. 多对多: 学生表 -> 课程表; 通常创建中间表, 中间表有 2 个外键, 分别指向两个表的主键, 即转换为「学生表 -> 中间表」,「课程表 -> 中间表」两个一对多问题
-3. 一对一: 常用于单表拆分, 基本字段放在一个表中, 详情字段放在另一个表中; 通常详情表的外键 (user_id), 指向基础表的主键 (id), 并且外键所在的列使用唯一约束
+3. 一对一: 常用于单表拆分, 基本字段放在一张表中, 详情字段放在另一张表中; 通常详情表的外键 (user_id), 指向基础表的主键 (id), 并且外键所在的列使用唯一约束
 
 ### 多表查询分类
 
@@ -339,115 +339,197 @@ t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_em
     - 左外连接: 查询 left 表、和 left 表、right 表交集的数据
     - 右外连接: 查询 right 表、和 left 表、right 表交集的数据
   - 自连接: left 表 == right 表 == 自身, 自连接必须使用表别名
+- 联合查询
 - 子查询
 
-连接查询
+## 连接查询
 
 ```sql
+-------------
 -- 隐式内连接
+-------------
 select <columnName1>, <columnName2>, ... from <tableName1>, <tableName2> where <conditionExpr>;
--- e.g. 查询每一个员工的姓名, 和关联的的部门名
+-- e.g. 查询每个员工的姓名, 和关联的部门名
 select t_emp.name, t_dep.name from t_emp, t_dep where t_emp.dep_id = t_dep.id;
 
+-------------
 -- 显式内连接
+-------------
 select <columnName1>, <columnName2>, ... from <tableName1> [inner] join <tableName2> on <conditionExpr>;
--- e.g.
 select e.name, d.name from t_emp as e inner join t_dep as d on e.dep_id = d.id; -- as 可省略
 
+-------------
 -- 左外连接
+-------------
 select <columnName1>, <columnName2>, ... from <tableName1> left [outer] join <tableName2> on <conditionExpr>;
--- e.g. 查询 t_
+-- e.g. 查询 t_emp 表的所有数据, 和关联的部门数据 (即使某些员工没有部门, 查询结果中也会保留这些员工)
+select e.*, d.* from t_emp as e left outer join t_dep as d on e.dep_id = d.id;
+-- 等价于
+select e.*, d.* from t_dep as d right outer join t_emp as e on e.dep_id = d.id;
 
-
+-------------
 -- 右外连接
+-------------
 select <columnName1>, <columnName2>, ... from <tableName1> right [outer] join <tableName2> on <conditionExpr>;
+-- e.g. 查询 t_dep 表的所有数据, 和关联的员工数据 (即使某些部门没有员工, 查询结果中也会保留这些部门)
+select d.*, e.* from t_emp as e right outer join t_dep as d on e.dep_id = d.id;
+-- 等价于
+select d.*, e.* from t_dep as d left outer join t_emp as e on d.id = e.dep_id;
 
+-------------
 -- 自连接
-select <columnName1>, <columnName2>, ... from <tableName> <alias1> join <tableName> <alias2> ON <conditionExpr>;
+-------------
+select <columnName1>, <columnName2>, ... from <tableName> <alias1> join <tableName> <alias2> on <conditionExpr>;
+-- e.g. 自连接 + 内连接: 在 t_emp 表中, 查询每个员工的姓名, 和关联的领导的姓名
+select e.name, l.name from t_emp as e, t_emp as l where e.leader_id = l.id
+
+-- e.g. 在 t_emp 表中, 查询每个员工的姓名, 和关联的领导的姓名 (即使某些员工没有领导, 查询结果中也会保留这些员工)
+
+-- e.g. 自连接 + 左外连接
+select e.name as 'employeeName', l.name as 'leaderName' from t_emp as e left outer join t_emp as l where e.leader_id = l.id;
+-- e.g. 自连接 + 右外连接
+select e.name 'employeeName', l.name 'leaderName' from t_emp l right join t_emp e where e.leader_id = l.id;
 ```
 
-联合查询: 联合查询的列数, 列类型应相同
+## 联合查询
+
+联合多个查询结果, 合并为新的结果集; 联合查询的列数, 列的类型必须相同
 
 ```sql
-SELECT columnNames FROM table1 ...
-UNION [ALL]
-SELECT columnNames FROM table2 ...;
+select <columnName1>, <columnName2>, ... from <tableName1> ...
+union [all]
+select <columnName1>, <columnName2>, ... from <tableName2> ...;
+
+-- e.g.
+select * from t_emp where salary < 5000
+union [all]
+select * from t_emp where age > 50;
+
+-- 使用 union 时, 和 or 条件查询等价, 会去重
+-- 使用 union all 时, 和 or 条件查询不等价, 不会去重
+select * from t_emp where salary < 5000 or age > 50;
+-- 当某个员工月薪 < 5000, 年龄也 > 50 时, 则该员工在联合查询的结果集中会出现两次
 ```
 
-子查询
+## 子查询
 
-- 标量子查询: 子查询结果为 1 个标量
-- 列子查询: 子查询结果为 1 列
-- 行子查询: 子查询结果为 1 行
-- 表子查询: 子查询结果为多行多列
+根据子查询的结果, 可以分为
+
+- 标量子查询: 子查询的结果为 1 个值
+- 列子查询: 子查询的结果为 1 列
+- 行子查询: 子查询的结果为 1 行
+- 表子查询: 子查询的结果为多行多列 (一张表)
+
+根据子查询的位置, 可以分为
+
+- where 后的子查询
+- from 后的子查询
+- select 后的子查询
 
 ```sql
-# 标量子查询
-SELECT *
-FROM employee
-WHERE departmentID = (
-    SELECT departmentID FROM department WHERE departmentName = "Finace"
-);
-# 列子查询
-SELECT *
-FROM employee
-WHERE salary > [ALL|SOME] (
-    SELECT salary FROM employee WHERE departmentID = (
-        SELECT departmentID FROM department WHERE departmentName = "Finace"
-    )
-);
-# 行子查询
-SELECT *
-FROM employee
-WHERE (salary, leaderID) = (
-    SELECT salary, leaderID FROM employee WHERE employeeName = "Hu Tao"
-);
-# 表子查询
-SELECT *
-FROM employee
-WHERE (job, salary) IN (
-    SELECT job, salary FROM employee WHERE employeeName = "Ganyu" OR employeeName = "Keqing"
-);
-SELECT t.*, d.*
-FROM (SELECT * FROM employee WHERE birthday >= '2002-02-28') AS t
-         LEFT JOIN department AS d ON t.departmentID = d.departmentID;
+-- 标量子查询: 子查询的结果为 1 个值
+select * from t_emp
+where dep_id = (
+  select id from t_dep where dep_name = "Web Infra"
+)
+
+-- 列子查询: 子查询的结果为 1 列
+select * from t_emp
+where salary > [all | some] (
+  select salary from t_emp where dep_id = (
+    select id from t_dep where dep_name = "Web Infra"
+  )
+)
+
+-- 行子查询: 子查询的结果为 1 行
+select * from t_emp
+where (salary, leader_id) = (
+  select salary, leader_id from t_emp where name = "whoami"
+)
+
+-- 表子查询: 子查询的结果为多行多列 (一张表)
+select * from t_emp
+where (job, salary) in (
+  select job, salary from t_emp where name = "Yukino" or name = "Shita"
+)
+
+select e.*, d.* from (
+  select * from t_emp where birthday >= "2002-02-28" as e left outer join t_dep as d on e.dep_id = d.id
+)
 ```
 
-### 1.8 事务
+> [!important] 高级篇
+>
+> - 事务
+> - 存储引擎
+> - 索引
+> - SQL 优化
+> - 视图
+> - 存储过程
+> - 触发器
+> - 锁
+> - 日志
+> - 主从复制
+> - 分库分表
+> - 读写分离
 
-事务: 不可分割的操作集合
+## 事务
 
-- 原子性 (Atomicity)
-- 一致性 (Consistency)
-- 隔离性 (Isolation)
-- 持久性 (Durable)
+MySQL 的事务默认自动提交
+
+### 事务的 4 大特性: ACID
+
+- 原子性 Atomicity: 事务是不可分割的最小操作单元, 要么全部成功, 要么全部失败
+- 一致性 Consistency: 事务完成时, 所有的数据必须保持一致
+- 隔离性 Isolation: 数据库提供的隔离机制 (隔离级别), 保证事务在不受外部并发操作影响的环境下执行
+- 持久性 Durable: 事务提交或回滚后, 对数据库中数据的改变是持久的
 
 ```sql
-SELECT @@autocommit;  # 查询事务提交方式
-# 隐式事务
-SET @@autocommit = 1; # 自动提交
-SET @@autocommit = 0; # 手动提交
-# 显式事务
-START TRANSACTION;    # 开启事务
-BEGIN;                # 开启事务
-COMMIT;               # 提交事务
-ROLLBACK;             # 回滚事务
+-- 查询事务提交方式
+select @@autocommit;
+-- 设置自动提交
+set @@autocommit = 1;
+-- 设置手动提交
+set @@autocommit = 0;
+
+-- 开启事务
+start transaction;
+-- 等价于
+begin;
+
+-- 提交事务
+commit;
+
+-- 回滚事务
+rollback;
 ```
 
-并发事务问题
+### 并发事务问题: 脏读、幻读、不可重复读
+
+并发事务问题: 两个或多个事务同时操作同一个数据库, 或同一张表时, 可能发生的问题
 
 - 脏读: 一个事务读到另一个事务未提交的数据
 - 不可重复读: 一个事务先后读同一条记录, 但两次读出的数据不同
-- 幻读: 一个事务查询某条记录时, 该记录不存在; 插入记录时, 该记录又已存在
+- 幻读: 一个事务查询某条记录时, 发现该记录不存在; 插入记录时, 却发现该记录已存在
 
-事务隔离级别
+### 事务隔离级别
 
-| 隔离级别               | 脏读 | 幻读 | 不可重复读 |
-| ---------------------- | ---- | ---- | ---------- |
-| Read Uncommitted       | √    | √    | √          |
-| Read Committed         | X    | √    | √          |
-| Repeatable Read (默认) | X    | X    | √          |
-| Serializable           | X    | X    | X          |
+MySQL 的默认事务隔离级别是 repeatable read 可重复读
+
+| 隔离级别                  | 脏读 | 不可重复读 | 幻读 |
+| ------------------------- | ---- | ---------- | ---- |
+| read-uncommitted 读未提交 | √    | √          | √    |
+| read-committed 读已提交   | X    | √          | √    |
+| repeatable-read 可重复读  | X    | X          | √    |
+| serializable 串行化       | X    | X          | X    |
+
+```sql
+-- 查询事务隔离级别
+select @@transaction_isolation;
+
+-- 设置事务隔离级别
+set [session | global] transaction isolation level {read uncommitted | read committed | repeatable read | serializable};
+```
 
 ## 第二章 索引
 
