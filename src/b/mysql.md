@@ -17,18 +17,9 @@ mysql -u <username> -p<password> [-D <databaseName>];
 
 ### 高级
 
-- 事务
-- 存储引擎
 - 索引
-- SQL 优化
-- 视图
-- 存储过程
-- 触发器
 - 锁
-- 日志
-- 主从复制
-- 分库分表
-- 读写分离
+- 存储引擎
 
 ## 创建表, 修改表
 
@@ -328,7 +319,7 @@ t_dep 部门表 (父表) 中删除某行, 或更新某行的 id 时; 如果 t_em
 
 ## 多表查询
 
-1. 一对多: 部门表 -> 员工表; 通常为 "多" (员工表, 子表) 建立外键 (foreign key), 指向 "一" 的主键 (部门表, 父表)
+1. 一对多: 部门表 -> 员工表; 通常为 "多" (员工表, 子表) 创建外键 (foreign key), 指向 "一" 的主键 (部门表, 父表)
 2. 多对多: 学生表 -> 课程表; 通常创建中间表, 中间表有 2 个外键, 分别指向两个表的主键, 即转换为「学生表 -> 中间表」,「课程表 -> 中间表」两个一对多问题
 3. 一对一: 常用于单表拆分, 基本字段放在一张表中, 详情字段放在另一张表中; 通常详情表的外键 (user_id), 指向基础表的主键 (id), 并且外键所在的列使用唯一约束
 
@@ -476,7 +467,7 @@ select e.*, d.* from (
 
 ## 事务
 
-MySQL 的事务默认自动提交
+mysql 的事务默认自动提交
 
 ### 事务的 4 大特性: ACID
 
@@ -515,7 +506,7 @@ rollback;
 
 ### 事务隔离级别
 
-MySQL 的默认事务隔离级别是 repeatable read 可重复读
+mysql 的默认事务隔离级别是 repeatable read 可重复读
 
 | 隔离级别                  | 脏读 | 不可重复读 | 幻读 |
 | ------------------------- | ---- | ---------- | ---- |
@@ -577,9 +568,11 @@ InnoDB 存储引擎支持 B+ 树索引和 fulltext 全文索引
 | 普通索引 | 一张表中可以有多个 |          |
 | 全文索引 | 一张表中可以有多个 | fulltext |
 
+#### 聚集索引、二级索引
+
 InnoDB 存储引擎中, 根据索引的存储形式, 也可以分为
 
-- 聚集索引: 索引和数据合并存储, 叶子节点存储完整的一行数据, 一张表的聚集索引有且只有 1 个
+- 聚集索引: 索引和数据合并存储, 叶子节点存储完整的行数据, 一张表的聚集索引有且只有 1 个
   1. 如果表有主键, 则主键索引是聚集索引
   2. 如果表没有主键, 则选择第一个唯一索引作为聚集索引
   3. 如果表既没有主键索引, 又没有唯一索引, 则 InnoDB 会生成一个隐式的 rowid 列作为聚集索引
@@ -604,157 +597,252 @@ insert into users values (1, 'Alice', 22), (2, 'Bob', 23);
 select * from users where name = 'Bob'
 ```
 
-=================================================
-
-- 单列索引: 1 个索引包含 1 列
-- 联合索引: 1 个索引包含多列
-
-根据索引的存储形式, 可分为
-
 回表查询: 先通过二级索引查询主键值; 再根据主键值, 通过聚集索引查询行数据
 
-```sql
-# 建立索引
-CREATE [UNIQUE|FULLTEXT] INDEX indexName ON tableName (column1, column2, ...);
-# 查询索引
-SHOW INDEX FROM tableName[\G];
-# 删除索引
-DROP INDEX indexNames ON tableName;
-```
+#### 单列索引、联合索引
 
-### 2.2 SQL 性能分析
+- 单列索引: 1 个索引关联 1 个字段
+- 联合索引: 1 个索引关联多个字段
 
 ```sql
-# 查询INSERT, UPDATE, DELETE, SELECT的频率
-SHOW [SESSION|GLOBAL] STATUS LIKE 'Com_______';
-# 慢查询日志
-SHOW VARIABLES LIKE "slow_query_log";
-# 是否支持profile操作
-SELECT @@have_profiling;
-# 是否开启profile操作
-SELECT @@profiling;
-# 开启profile操作
-SET [SESSION|GLOBAL] profiling = 1;
-# 查询每一条SQL的耗时
-SHOW PROFILES;
-# 查询指定queryID的SQL的耗时
-SHOW PROFILE FOR QUERY queryID;
-# 查询指定queryID的SQL的CPU占用
-SHOW PROFILE CPU FOR QUERY queryID;
-# 执行计划
-USE mysql;
-[EXPLAIN|DESC] SELECT * FROM user;
+-- 建立索引
+create [unique | fulltext] index <indexName> on <tableName> (<column>, <column2>, ...);
+
+-- 查询索引
+show index from <tableName> [\G];
+
+-- 删除索引
+drop index <indexName>, <indexName2>, ... on <tableName>;
 ```
 
-执行计划
-
-- id: 查询的序列号
-  id 相同, 执行顺序从上到下; id 不同, id 越大越先执行
-- select_type: 查询的类型
-  - SIMPLE: 简单查询, 即不包含连接查询, 子查询
-  - PRIMARY: 主查询
-  - UNION: UNION 后的查询
-  - SUBQUERY: 子查询
-- type: 连接类型
-  性能从高到低: NULL, system, const, eq_ref, ref, range, index, all
-- possible_key: 可能使用的索引
-- key: 使用的索引 (NULL 表示未使用索引)
-- key_len: 索引的最大可能长度
-- rows: 可能查询的行数
-- fitered: 返回行数占读取行数的百分比, fitered 的值越大越好
-
-### 2.3 索引使用
-
-索引失效
-
-- 最左前缀匹配原则: 查询时从联合索引的最左列开始, 从左到右进行匹配. 不跳跃联合索引中的列, 若跳跃某一列, 则右侧的列索引失效
-- 范围查询时, <, >右侧的列索引失效 (多使用 ≤, ≥)
-- 对索引的列进行运算时, 索引失效
-- 字符串不加引号时, 导致隐式类型转换, 索引失效
-- 头部模糊匹配时, 索引失效; 尾部模糊匹配时, 索引不失效
-- 若 OR 左侧条件中的列有索引, OR 右侧条件的列没有索引, 则索引失效
-- 数据分布影响: 若 MySQL 评估使用索引比全表扫描慢, 则索引失效
-
-SQL 提示
+### sql 性能分析
 
 ```sql
-# USE INDEX (建议使用)
-EXPLAIN SELECT * FROM tableName USE INDEX(indexName) conditions;
-# IGNORE INDEX (忽略)
-EXPLAIN SELECT * FROM tableName IGNORE INDEX(indexName) conditions;
-# FORCE INDEX (强制使用)
-EXPLAIN SELECT * FROM tableName FORCE INDEX(indexName) conditions;
+-- 查询 CRUD 的频率
+-- Com_insert, Com_delete, Com_update, Com_select
+show [session | global] status like 'Com_______';
+
+-- 是否开启慢查询日志, 默认关闭
+-- show variables like 'slow_query_log';
+
+-- 是否开启 profiling, 默认开启
+select @@have_profiling;
+
+-- 在 session/global 级别开启 profiling
+set [session | global] profiling = 1;
+
+-- 查询每条 sql 的 queryID、耗时、查询语句
+show profiles;
+
+-- 查询指定 queryID 的 sql 各个阶段的耗时
+show profile for query <queryID>;
+
+-- 查询指定 queryID 的 sql 各个阶段的耗时和 cpu 占用
+show profile cpu for query <queryID>;
+
+-- 查看 select 语句的执行计划
+[explain | desc] select * from <tableName>;
+
+-- +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------+
+-- | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra |
+-- +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------+
+-- type: ALL 表示未使用索引
+-- key: NULL 表示未使用索引
 ```
 
-覆盖索引: 查询时, 使用的索引包含所有返回的列 (减少 SELECT \*, 避免回表查询)
+- id 查询的序列号; id 相同则执行顺序从上到下; id 不同则 id 越大越先执行
+- select_type 查询的类型
+  - simple 简单查询, 即不包含连接查询、子查询
+  - primary 主查询
+  - union 联合查询 union 后的查询
+  - subquery 子查询
+- type 连接类型, 性能从高到低 NULL, system, const, eq_ref, ref, range, index, ALL
+- possible_key 可能使用的索引, 一个或多个
+- key 实际使用的索引, NULL 表示未使用索引
+- key_len 索引字段占用的字节数
+- rows: 查询的行数
+- filtered: 返回行数占读取行数的百分比, filtered 的值越大越好
 
-前缀索引: 用字符串的前缀 (前 n 个字符) 建立索引
+```bash
+# /etc/my.cnf 开启慢查询日志
+show_query_log=1
+# sql 查询时间超过 2s 时, 记录慢查询日志
+long_query_time=2
+
+# 慢日志
+/var/lib/mysql/localhost-slow.log
+```
+
+### 覆盖索引
+
+联合索引的列包含查询的全部列, 避免回表查询
 
 ```sql
-CREATE INDEX indexName ON tableName(columnName(n));
+-- idx_name_age
+-- 二级索引的叶子节点存储 [name, age, id]
+-- 聚集索引的叶子节点存储行数据
+show index from users;
+
+-- using where; using index: 查询时使用了索引, 并且无需回表查询
+explain select name, age from users where name = 'whoami' and age = 22;
+-- using index condition: 查询时使用了索引, 但是需要回表查询
+explain select * from users where name = 'whoami' and age = 22;
 ```
 
-索引的选择性: 不重复索引值的数量 (基数) 与表中记录数之比, 唯一索引的选择性为 1 (最大值) . 索引的选择性越大, 查询效率越高
+```sql
+create index idx_name on users (name);
+select * from users where id = 2; -- 1 次查询
+select id, name from users where name = 'Alice'; -- 1 次查询
+select id, name, age from users where name = 'Alice'; -- 2 次查询, 需要回表查询 age
+```
 
-### 2.4 索引设计原则
+### 索引失效
 
-1. 对数据量较大, 查询较频繁的表建立索引
-2. 对频繁作为条件查询, 排序查询, 分组查询的列建立索引
-3. 选择区分度高的列作为索引, 多建立唯一索引
-4. 对于字符串类型的列, 可建立前缀索引
-5. 多建立联合索引, 减少单列索引. 查询时联合索引可以覆盖索引, 避免回表查询, 提高查询效率
-6. 限制索引的数量
-7. 多使用非空约束
+#### 最左前缀匹配原则
 
-### 2.5 SQL 优化
+查询时必须包含联合索引的最左列, 并且不能跳过联合索引中的某一列; 否则联合索引全部/部分失效
 
-INSERT 优化
+```sql
+-- idx_name_age_gender
+-- 二级索引的叶子节点存储 [name, age, gender, id]
+-- 聚集索引的叶子节点存储行数据
+show index from users;
 
-- 批量插入
-- 手动提交事务
-- 主键顺序插入
-- 插入大量数据时, 使用 load 指令
+-- 联合索引有效
+select * from users where name = 'whoami' and age = 22 and gender = 1;
+select * from users where name = 'whoami' and age = 22;
+select * from users where name = 'whoami';
 
-主键优化
+-- 未包含联合索引的最左列, 联合索引全部失效
+select * from users where age = 22 and gender = 1;
+select * from users where gender = 1;
 
-InnoDB 存储引擎中, 数据根据主键顺序存储, 使用该存储方式的表称为索引组织表 (Index Organized Table, IOT)
+-- 跳过联合索引中的 age 列, 联合索引的 gender 列部分失效 (多一次回表查询)
+select * from users where name = 'whoami' and gender = 1;
+```
 
-- 页分裂: 参考 B+树的插入
-- 页合并: 参考 B+树的删除
-- 主键设计原则
-  - 减小主键长度
-  - 使用自增主键, 主键顺序插入
-  - 不使用 UUID 等作为主键
+#### 其他
 
-ORDER BY 优化
-Using filesort: 通过索引或全表扫描, 读取满足条件的记录. 在排序缓冲区 (sort buffer) 中进行排序后, 返回排序结果
-Using index: 通过有序索引, 顺序扫描, 直接返回排序结果, 效率高
+- 对索引列使用「左」`like '%xxx'` 或「左右」`like '%xxx%'` 模糊匹配
+- 对索引列使用函数
+- 对索引列进行表达式计算
+- 对索引列进行隐式类型转换 (mysql 比较字符串和数字时, 会自动将字符串转换为数字进行比较)
+- where 子句中的 or: 在 where 子句中, 如果 or 前面的是索引列, or 后面的不是索引列, 则索引失效
 
-- 根据待排序的列建立索引, 遵循最左前缀匹配原则
-- 多覆盖索引 (查询时, 使用的索引包含所有返回的列)
-- 不可避免 filesort, 大量数据待排序时, 可增大排序缓冲区大小 sort_buffer_size (默认 256K)
+```sql
+-- name 字段是二级索引
 
-GROUP BY 优化
+-- 对索引列使用「左」或「左右」模糊匹配
+select * from users where name like 'htc%'; -- 索引有效
+select * from users where name like '%ccc'; -- 索引失效
+select * from users where name like '%tc%'; -- 索引失效
 
-- 通过索引提高效率
-- 遵循最左前缀匹配原则
+-- 对索引列使用函数
+select * from users where length(name) = 5; -- 索引失效
+-- 解决方法: 创建 length(name) 虚拟列并建立索引
+alter table users add key idx_name_length ((length(name)));
 
-LIMIT 优化
+-- 对索引列进行表达式计算
+select * from users where id = 7 - 1; -- 索引有效
+select * from users where id + 1 = 7; -- 索引失效
 
-- 分页查询时, 通过"覆盖查询 + 子查询"进行优化
+-- 对索引列进行隐式类转换 (phone: varchar)
+-- mysql 比较字符串和数字时, 会自动将字符串转换为数字进行比较
+select "10" > 9; -- 1
 
-COUNT 优化
+select * from users where phone = 15395377789; -- 索引失效
+-- 原理: 等价于
+select * from users where cast(phone as signed int) = 15395377789; -- 索引失效
 
-- count(主键): 主键不为空, 直接累加
-- count(列名)
-  - 有非空约束: 直接累加
-  - 没有非空约束, 判空, 累加
-- count(1): 直接累加
-- count(\*): 直接累加
+select * from users where id = "1" -- 索引有效
+-- 原理: 等价于
+select * from users where id = cast("1" as signed int) -- 索引有效
+```
 
-按效率排序: count(列名) < count(主键) < count(1) < count(\*), 多使用 count(\*)
+where 子句中的 or: 在 where 子句中, 如果 or 前面的是索引列, or 后面的不是索引列, 则索引失效
 
-UPDATE 优化 (避免行锁升级为表锁)
+```sql
+select * from users where id = 1 or age = 7; -- 索引失效
+-- 解决方法: 为 age 列建立索引
+create index idx_age on users (age);
+```
 
-InnoDB 的行锁是对索引上锁, 不是对记录上锁. 索引失效时, 行锁升级为表锁
-尽量通过主键, 索引 UPDATE 数据, 避免行锁升级为表锁
+#### sql 提示
+
+- use index(<indexName>) mysql 使用索引
+- ignore index(<indexName>) mysql 忽略索引
+- force index(<indexName>) 强制 mysql 使用索引
+
+```sql
+-- mysql 使用索引
+explain select * from <tableName> use index(<indexName>) <conditionExpr>;
+-- mysql 忽略索引
+explain select * from <tableName> ignore index(<indexName>) <conditionExpr>;
+-- 强制 mysql 使用索引
+explain select * from <tableName> force index(<indexName>) <conditionExpr>;
+```
+
+### 前缀索引
+
+字符串很长时, 可以为长度为 n 的前缀建立索引
+
+```sql
+create index <indexName> on <tableName> (<columnName>(n));
+
+-- 计算前缀的选择性 (越接近 1 越好)
+select count(distinct substring(name, 1, 5)) / count(*) from users;
+create index idx_name_5 on users (name(5));
+```
+
+## 锁
+
+- 全局锁: 锁数据库
+- 表级锁: 锁一张表, 分为:
+  - 表锁
+  - 元数据锁 (meta data lock, MDL)
+  - 意向锁
+  - auto-inc 锁
+- 行级锁: 锁一行
+
+### 全局锁
+
+- 所有线程可以查询
+- create、alter、drop、增删改等操作都会被阻塞
+
+```sql
+-- 为当前数据库 (的所有表) 加全局锁
+flush tables with read lock;
+-- 释放全局锁 (会话结束后, 自动释放全局锁)
+unlock tables;
+```
+
+```bash
+# 数据备份, 需要加全局锁
+mysqldump -uroot -ppass db0 > ./db0.sql
+# 数据备份, 开启事务, 无需加全局锁
+mysqldump --single-transaction -uroot -ppass db0 > ./db0.sql
+```
+
+### 表级锁
+
+#### 表锁
+
+表锁分为:
+
+- 表共享读锁 (read lock): 所有线程共享读本表, 但是禁止读写其他表
+- 表独占写锁 (write lock)
+  - 当前线程独占读写本表, 禁止读写其他表
+  - 其他线程禁止读写所有表
+
+```sql
+-- 加表共享读锁
+lock tables <tableName>, <tableName2>, ... read;
+-- 加表独占写锁
+lock tables <tableName>, <tableName2>, ... write;
+-- 释放表锁 (会话结束后, 自动释放全局锁)
+unlock tables
+```
+
+#### 元数据锁
+
+无需显式的使用元数据锁
