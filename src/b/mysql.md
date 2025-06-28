@@ -474,7 +474,7 @@ mysql 的事务默认自动提交
 - 原子性 Atomicity: 事务是不可分割的最小操作单元, 要么全部成功, 要么全部失败
 - 一致性 Consistency: 事务完成时, 所有的数据必须保持一致
 - 隔离性 Isolation: 数据库提供的隔离机制 (隔离级别), 保证事务在不受外部并发操作影响的环境下执行
-- 持久性 Durable: 事务提交或回滚后, 对数据库中数据的改变是持久的
+- 持久性 Durability: 事务提交或回滚后, 对数据库中数据的改变是持久的
 
 ```sql
 -- 查询事务提交方式
@@ -532,10 +532,13 @@ set [session | global] transaction isolation level {read uncommitted | read comm
 
 InnoDB 存储引擎的每个数据库对应一个目录, 每张表对应一个 .ibd 表空间文件, 存储索引和数据
 
-- 表空间 TableSpace 是分段 Segment 的
+- 表空间 (.ibd 文件) 是分段 Segment 的
+  - 索引段: B+ 树的叶子节点
+  - 数据段: B+ 树的非叶节点
+  - 回滚段
 - 段 Segment 是分区 Extent 的
-- 区 Extent 是分页 Page 的 (索引页、数据页), 区的大小固定 1MB
-- 页 Page 是分行 Row 的 (行式数据库), 页的大小固定 16KB, 每个区有 64 页, 页是磁盘操作的最小单元
+- 区 Extent 是分页 Page 的, 区的大小固定 1MB
+- 页 Page 是分行 Row 的 (行式数据库), 页的大小固定 16KB, 1 个区有 64 页, 页是磁盘操作的最小单元
 
 ## 索引
 
@@ -769,9 +772,9 @@ create index idx_age on users (age);
 
 #### sql 提示
 
-- use index(<indexName>) mysql 使用索引
-- ignore index(<indexName>) mysql 忽略索引
-- force index(<indexName>) 强制 mysql 使用索引
+- `use index(<indexName>)` mysql 使用索引
+- `ignore index(<indexName>)` mysql 忽略索引
+- `force index(<indexName>)` 强制 mysql 使用索引
 
 ```sql
 -- mysql 使用索引
@@ -810,7 +813,7 @@ create index idx_name_5 on users (name(5));
 - create、alter、drop、增删改等操作都会被阻塞
 
 ```sql
--- 为当前数据库 (的所有表) 加全局锁
+-- 对当前数据库 (的所有表) 加全局锁
 flush tables with read lock;
 -- 释放全局锁 (会话结束后, 自动释放全局锁)
 unlock tables;
@@ -843,6 +846,40 @@ lock tables <tableName>, <tableName2>, ... write;
 unlock tables
 ```
 
-#### 元数据锁
+#### 元数据锁 (MDL)
 
-无需显式的使用元数据锁
+元数据: 表结构, 无需显式的使用元数据锁
+
+- 对一张表进行 crud 操作时, 加 MDL 读锁
+- 对一张表进行修改表结构操作时, 加 MDL 写锁
+- 有线程 crud 表时, 加 MDL 读锁; 如果有其他线程修改表结构 (申请 MDL 写锁), 则会被阻塞, 直到 crud 结束释放 MDL 读锁
+- 有线程修改表结构时, 加 MDL 写锁; 如果有其他线程 curd 表 (申请 MDL 读锁), 则会被阻塞, 直到修改表结构结束释放 MDL 写锁
+
+申请 MDL 锁的请求会形成一个 FIFO 请求队列
+
+#### 意向锁
+
+mysql 更新行时, 会对该行加行锁; 如果同时对该表加表锁时, 需要逐行检查每行是否加了行锁
+
+InnoDB 存储引起为了解决加行锁与加表锁的冲突, 引入意向锁, 无需逐行检查每行是否加了行锁
+
+## InnoDB 存储引擎
+
+### 事务原理
+
+事务的 4 大特性: 原子性 Atomicity, 一致性 Consistency, 隔离性 Isolation, 持久性 Durability
+
+- 原子性、一致性、持久性: 由 redo log 重做日志, undo log 回滚日志实现
+- 隔离性: 由锁和 MVCC 实现
+
+### MVCC, Multi-Version Concurrency Control
+
+MVCC, Multi-Version Concurrency Control 多版本并发控制
+
+#### 基本概念
+
+- 当前读: 读取最新版本的记录,「当前读」时会对该记录加锁, 同时保证其他并发事务不能修改该记录
+
+```sql
+select <columnName>, <columnName2>, ... from <tableName> lock in share mode;
+```

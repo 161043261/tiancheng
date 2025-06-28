@@ -1,4 +1,4 @@
 {
-  "cSpell.words": ["fulltext", "varchar"],
+  "cSpell.words": ["fulltext", "varchar", "InnoDB", "MVCC"],
   "editor.fontFamily": "Iosevka Light, LXGW WenKai"
 }
