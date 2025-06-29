@@ -506,14 +506,14 @@ rollback;
 
 ### 事务隔离级别
 
-mysql 的默认事务隔离级别是 repeatable read 可重复读
+mysql 的默认事务隔离级别是 Repeatable Read 可重复读, 没有脏读、不可重复读, 只有幻读
 
-| 隔离级别                  | 脏读 | 不可重复读 | 幻读 |
-| ------------------------- | ---- | ---------- | ---- |
-| read-uncommitted 读未提交 | √    | √          | √    |
-| read-committed 读已提交   | X    | √          | √    |
-| repeatable-read 可重复读  | X    | X          | √    |
-| serializable 串行化       | X    | X          | X    |
+| 隔离级别, √ 代表有, X 代表无 | 脏读 | 不可重复读 | 幻读 |
+| ---------------------------- | ---- | ---------- | ---- |
+| Read Uncommitted 读未提交    | √    | √          | √    |
+| Read Committed 读已提交      | X    | √          | √    |
+| Repeatable Read 可重复读     | X    | X          | √    |
+| Serializable 串行化          | X    | X          | X    |
 
 ```sql
 -- 查询事务隔离级别
@@ -826,16 +826,16 @@ mysqldump -uroot -ppass db0 > ./db0.sql
 mysqldump --single-transaction -uroot -ppass db0 > ./db0.sql
 ```
 
-### 表级锁
+### 表级锁: 表锁、元数据锁、意向锁
 
 #### 表锁
 
 表锁分为:
 
-- 表共享读锁 (read lock): 所有线程共享读本表, 但是禁止读写其他表
+- 表共享读锁 (read lock): 所有线程共享读本表, 但是不允许读写其他表
 - 表独占写锁 (write lock)
-  - 当前线程独占读写本表, 禁止读写其他表
-  - 其他线程禁止读写所有表
+  - 当前线程独占读写本表, 不允许读写其他表
+  - 其他线程不允许读写所有表
 
 ```sql
 -- 加表共享读锁
@@ -859,9 +859,88 @@ unlock tables
 
 #### 意向锁
 
-mysql 更新行时, 会对该行加行锁; 如果同时对该表加表锁时, 需要逐行检查每行是否加了行锁
+意向锁分为:
+
+- 意向共享锁 (Intension Shared Lock, IS) `select ... lock in share mode` 时, 加意向共享锁
+- 意向排他锁 (Intension Exclusive Lock, IX) `insert | delete | update | select ... for update` 时, 加意向排他锁
+
+一个线程更新行时, 会对该行加行锁; 如果另一个线程同时对该表加表锁时, 需要逐行检查每行是否加了行锁
 
 InnoDB 存储引起为了解决加行锁与加表锁的冲突, 引入意向锁, 无需逐行检查每行是否加了行锁
+
+一个线程 a 更新行时, 会对该行加行锁, 同时对该表加意向锁; 如果另一个线程 b 同时对该表加表锁时, 如果意向锁和表锁兼容, 则直接加表锁; 如果意向锁和表锁不兼容, 则阻塞, 直到线程 a 更新行的事务结束, 释放行锁和意向锁
+
+#### 意向共享锁和表锁的兼容性
+
+- 意向共享锁 IS: `select ... lock in share mode` 时, 加行共享锁 (行级锁) 和意向共享锁 (表级锁), 意向共享锁与表共享读锁兼容, 与表独占写锁互斥, 即查询行时, 允许读表, 不允许写表
+- 意向排他锁 IX: `insert | delete | update | select ... for update` 时, 加行排他锁 (行级锁) 和意向排他锁 (表级锁), 意向排他锁与表共享读锁、表独占写锁都互斥, 即增删改行时, 不允许读写表
+
+**查看意向锁、行锁的加锁情况**
+
+- 表级、意向共享锁 table IS
+- 表级、意向排他锁 table IX
+- 行级、共享行锁 record S,rec_not_gap
+- 行级、排他行锁 record X,rec_not_gap
+- 行级、共享间隙锁 record S,gap
+- 行级、排他间隙锁 record X,gap
+- 行级、共享临键锁 record S
+- 行级、排他临键锁 record X
+
+```sql
+-- 查看意向锁、行锁的加锁情况
+-- object_schema 数据库名
+-- object_name 表名
+-- index_name 索引名
+-- lock_type 锁的级别: 表级锁 table, 行级锁 record
+-- lock_mode 锁的类型
+-- * 意向共享锁 table IS
+-- * 意向排他锁 table IX
+-- * 共享行锁 record S,rec_not_gap
+-- * 排他行锁 record X,rec_not_gap
+-- * 共享间隙锁 record S,gap
+-- * 排他间隙锁 record X,gap
+-- * 共享临键锁 record S
+-- * 排他临键锁 record X
+select object_schema, object_name, index_name, lock_type, lock_mode, lock_data from performance_schema.data_locks;
+```
+
+### 行级锁: 行锁、间隙锁、临键锁
+
+行级锁: InnoDB 存储引擎支持, 锁的粒度最小、发生锁冲突的概率最低、并发度最高
+
+事务隔离级别: mysql 的默认事务隔离级别是 Repeatable Read 可重复读
+
+| 隔离级别, √ 代表有, X 代表无 | 脏读 | 不可重复读 | 幻读 |
+| ---------------------------- | ---- | ---------- | ---- |
+| Read Uncommitted 读未提交    | √    | √          | √    |
+| Read Committed 读已提交      | X    | √          | √    |
+| Repeatable Read 可重复读     | X    | X          | √    |
+| Serializable 串行化          | X    | X          | X    |
+
+行级锁分为:
+
+1. 行锁 Record Lock: 锁定某条记录, 防止其他事务对该记录进行 delete 和 update; 在 Read Committed 读已提交和 Repeatable Read 可重复读的事务隔离级别下都支持
+2. 间隙锁 Gap Lock: 锁定记录间的间隙, 防止其他事务对该间隙进行 insert, 导致幻读; 在 Repeatable Read 可重复读的事务隔离级别下支持
+3. 临键锁 Next-Key Lock: 锁定某条记录, 和该记录前面的间隙; 在 Repeatable Read 可重复读的事务隔离级别下支持
+
+#### 行锁
+
+| sql                             | 行锁类型                                                    |
+| ------------------------------- | ----------------------------------------------------------- |
+| `insert, delete, update`        | 行排他锁 record X, 不允许其他线程读写该行                   |
+| `select`                        | 不加行锁                                                    |
+| `select ... lock in share mode` | 行共享锁 record S, 允许其他线程读该行, 不允许其他线程写该行 |
+| `select ... for update`         | 行排他锁 record X                                           |
+
+InnoDB 的行锁是基于索引加的锁
+
+- 对于唯一约束的字段, mysql 自动建立唯一索引
+- mysql 的默认事务隔离级别是 Repeatable Read 可重复读
+- InnoDB 使用临键锁 Next-Key Lock 防止幻读
+- 对于使用索引的精确匹配, 如果该记录存在, 则 mysql 为该行加「行锁」
+- 对于使用索引的精确匹配, 如果该记录不存在, 则 mysql 为该间隙加「间隙锁」
+- 对于使用索引的范围匹配, mysql 为匹配的所有行和间隙加「行锁」、「间隙锁」,可以合并为「临键锁」
+- 如果未使用索引, 则 mysql 会为扫描到的**每一行**加「行锁」
 
 ## InnoDB 存储引擎
 
@@ -874,12 +953,33 @@ InnoDB 存储引起为了解决加行锁与加表锁的冲突, 引入意向锁, 
 
 ### MVCC, Multi-Version Concurrency Control
 
-MVCC, Multi-Version Concurrency Control 多版本并发控制
+MVCC, Multi-Version Concurrency Control 多版本并发控制, 维护一个数据的多个历史版本 (快照), 提供非阻塞读, 保证并发读写时没有冲突
 
-#### 基本概念
+MVCC 的实现依赖于 3 个隐式字段、undo log 回滚日志、readView 快照视图
 
-- 当前读: 读取最新版本的记录,「当前读」时会对该记录加锁, 同时保证其他并发事务不能修改该记录
+#### 基本概念: 当前读和快照读
+
+- 当前读: 读取数据时, 读取的是最新版本的数据,「当前读」时会加锁, 阻塞
+
+`insert, delete, update` (加行排他锁)、`select ... lock in share mode` (加行共享锁)、`select ... for update` (加行排他锁) 都是当前读
 
 ```sql
-select <columnName>, <columnName2>, ... from <tableName> lock in share mode;
+begin; -- transaction A
+select name from users where id = 2; -- transaction A; Sakura
+begin; -- transaction B
+update users set name = 'Momoko' where id = 2; -- transaction B
+select name from users where id = 2; -- transaction A; Sakura
+commit; -- transaction B
+select name from users where id = 2; -- transaction A; Sakura
+-- 原理: mysql 的默认事务隔离级别是 Repeatable Read 可重复读
+
+-- 当前读
+select name from users where id = 2 lock in share mode; -- transaction A; Momoko
+select name from users where id = 2 for update; -- transaction A; Momoko
 ```
+
+快照读: 简单的 select, 读取的是符合事务隔离级别要求的历史版本 (快照),「快照读」时不会加锁, 非阻塞
+
+- 对于 Read Committed 读已提交的事务隔离级别, 每次读取时都会生成新的快照
+- 对于 Repeatable Read 可重复读的事务隔离级别, 开启事务后, 只有第一次读取时会生成快照, 保证可重复读
+- 对于 Serializable 串行化的事务隔离级别, 快照读退化为当前读
