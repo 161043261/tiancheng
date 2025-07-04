@@ -65,7 +65,7 @@ esc        # 切换到命令模式
 :q!        # 强制退出
 ```
 
-## Ubuntu
+## ubuntu
 
 ```bash
 ip a

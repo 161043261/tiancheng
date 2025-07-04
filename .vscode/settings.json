@@ -1,4 +1,13 @@
 {
-  "cSpell.words": ["fulltext", "varchar", "InnoDB", "MVCC"],
+  "cSpell.words": [
+    "beforeunload",
+    "fulltext",
+    "InnoDB",
+    "MVCC",
+    "tiancheng",
+    "tianchenghang",
+    "varchar",
+    "vitepress"
+  ],
   "editor.fontFamily": "Iosevka Light, LXGW WenKai"
 }
