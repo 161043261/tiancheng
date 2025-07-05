@@ -1,12 +1,12 @@
 # Vue3 基础
 
-Vue 框架: 单页面应用
+## MVVM 架构
 
-MVVM, Model-View-ViewModel 架构
+MVVM, Model-View-ViewModel
 
-1. View 视图层
-2. ViewModel 例 .vue, .jsx, .tsx
-3. Model 数据层
+1. View 视图层, Vanilla DOM
+2. ViewModel 视图模型层: Vue
+3. Model 模型层: Vanilla JavaScript
 
 ## 使用 vscode 调试
 
@@ -30,23 +30,23 @@ MVVM, Model-View-ViewModel 架构
 
 ### 重写双向数据绑定
 
-- vue2 的双向数据绑定基于 Object.defineProperty(); 创建一个 Vue 实例时, for..in 遍历 vm.data 中的所有属性, 使用 Object.defineProperty() 将属性转换为 getter 和 setter
-- vue3 的双向数据绑定基于 Proxy 代理对象
+- Vue2 的双向数据绑定基于 `Object.defineProperty()`; 创建一个 Vue 实例时, for...in 遍历 vm.data 中的所有属性, 使用 `Object.defineProperty()` 将属性转换为 getter 和 setter
+- Vue3 的双向数据绑定基于 Proxy 代理对象
 
-优势
+优点
 
-1. 省略 for..in 遍历
-2. 可以监听数组的 length 属性, 数组的索引
-3. 可以监听新增属性操作, 删除属性操作
+1. 不需要数据备份
+2. 可以监听数组的索引和 length 属性
+3. 可以监听新增属性、删除属性操作
 
-### 优化虚拟 DOM
+### 虚拟 DOM 性能优化
 
-- Vue2 中, 使用 diff 算法更新虚拟 DOM 时, 全量对比
-- Vue3 中, 使用 diff 算法更新虚拟 DOM 时, 只对比有 Patch Flag 的节点
+- Vue2 中, 每次使用 diff 算法更新虚拟 DOM 时, 都是全量对比
+- Vue3 中, 每次使用 diff 算法更新虚拟 DOM 时, 只对比有 patch 标记的节点
 
 ### Vue3 Fragments
 
-Vue3 允许组件有多个根节点, 支持 jsx, tsx
+Vue3 允许组件有多个根节点, 支持 JSX, TSX
 
 ```vue
 <template>
@@ -66,17 +66,30 @@ render() {
 }
 ```
 
-Vue3 Tree shaking: 删除无用代码
+Vue3 Tree-Shaking: 删除冗余代码
 
 ## 创建 Vue3 项目
 
+### Vue3 脚手架
+
 ```bash
+# npm install create-vue@latest -g
+# npx create-vue
+npm create vue@latest --verbose # 推荐
+
+# npm install create-vite@latest -g
+# npx create-vite
+npm create vite@latest --verbose
+
+pnpm create vue@latest
+
 pnpm create vite@latest
-pnpm create vue@latest # 推荐
 ```
 
-- public 下的静态文件, 不会被 vite 编译
-- src/asset 下的静态文件, 会被 vite 编译
+### Vue3 项目结构
+
+- public 下的静态文件, 不会被 vite 打包
+- src/assets 下的静态文件, 会被 vite 打包
 - src/App.vue Vue 应用的根组件
 - src/main.ts Vue 应用的入口 JS/TS 文件, 导入 ./App.vue 根组件并创建 App 对象, 并挂载到 index.html, 也可以导入全局样式, 全局 api
 - index.html Vue 应用的入口 HTML 文件, `<div id="app"></div>` 是 App 对象的挂载点
@@ -91,8 +104,7 @@ SFC, Single File Component 单文件组件
 - template 标签: 只能有一个
 - style 标签: 可以有多个
 
-> [!tip]
-> 配置 VSCode 代码片段
+> [!tip] 配置 vscode 代码片段
 
 ```json
 {
@@ -120,28 +132,7 @@ SFC, Single File Component 单文件组件
 
 ## 风格指南
 
-> [!tip]
-> 风格: Vue2 选项式 Option API
-
-```vue
-<script lang="ts">
-export default {
-  data() {
-    return {
-      cnt: 0,
-    };
-  },
-  methods: {
-    addCnt() {
-      this.cnt++;
-    },
-  },
-};
-</script>
-```
-
-> [!tip]
-> 风格: setup 函数
+### setup 函数
 
 ```vue
 <script lang="ts">
@@ -166,8 +157,7 @@ export default {
 - 单向绑定: 模型 (数据) 改变 --> 视图 (页面) 改变. 例: {{ }} 插值; v-bind 指令
 - 双向绑定: 模型 (数据) 改变 <-> 视图 (页面) 改变. 例: v-model 指令, 常用于输入框
 
-> [!tip]
-> 风格: setup 语法糖, 组合式 Composition API
+### setup 语法糖
 
 ```vue
 <script lang="ts" setup>
@@ -181,23 +171,32 @@ const addCnt = () => {
 
 ## vue 指令
 
-- v-text 渲染文本, v-text 会覆盖子元素
-- v-html 渲染 HTML, v-html 会覆盖子元素, 不支持 Vue 组件
-- v-if, v-else-if, v-else 元素的条件渲染, 不渲染则将元素转换为注释节点 `<!-- v-if -->`, 操作 DOM
-- v-show 元素的显示/隐藏: 改变内联 CSS 样式 `display: none`, 操作 CSS
+- v-text 渲染文本字符串, 会忽略子节点
+- v-html 渲染 HTML 字符串, 忽略子节点, 不支持渲染 Vue 组件
+- v-if, v-else-if, v-else 节点的条件渲染, 不渲染则将节点卸载, 表现为注释节点 `<!-- v-if -->`, 操作 DOM
+- v-show 节点的显示/隐藏: 改变内联 CSS 样式 `display: none`, 操作 CSS
 - v-on 为元素绑定事件
-- v-bind 为元素绑定属性, 模型到视图的单向绑定. v-bind 也可以绑定 style, 类似 jsx
-- v-model 模型, 视图的双向绑定, 本质是 v-bind 和 `v-on:[eventType]` 的语法糖
+- v-bind 为元素绑定属性, 模型到视图的单向绑定; v-bind 也可以绑定 style
+- v-model 模型, 视图的双向绑定, 本质是 v-bind 和 v-on 的语法糖
 - v-for 遍历元素
 - v-once 性能优化, 只渲染一次
 - v-memo 性能优化, 缓存
 
-> [!caution]
-> v-on 可以简写为 @
->
-> v-bind 可以简写为 :
->
-> v-model 本质是 v-bind 和 `v-on:[eventType]` 的语法糖
+```vue
+<script lang="ts" setup>
+const eventName = "click";
+const handleClick = (ev) => console.log(ev);
+</script>
+
+<template>
+  <!-- 动态事件名 -->
+  <button @[eventName]="handleClick">log</button>
+</template>
+```
+
+- v-on: 可以简写为 @
+- v-bind: 可以简写为 :
+- v-model 本质是 v-bind 和 v-on 的语法糖
 
 ```vue
 <template>
@@ -213,7 +212,6 @@ const addCnt = () => {
 <script lang="ts" setup>
 const evType = ref("click");
 function clickHandler(ev: Event) {
-  console.log("[Child] ev:", ev);
   console.log("[Child] evType:", evType);
 }
 </script>
@@ -237,19 +235,18 @@ function clickHandler(ev: Event) {
 </template>
 ```
 
-这里, 点击 button 子元素时, 事件会冒泡到 div 父元素, 触发 div 父元素的点击事件, 使用 .stop 修饰符阻止事件冒泡
+这里点击 button 子元素时, 事件会冒泡到 div 父元素, 触发 div 父元素的点击事件, 可以使用 .stop 修饰符阻止事件冒泡
 
-> [!tip]
-> 事件传播分为 3 个阶段: 捕获阶段, 目标阶段和冒泡阶段
+事件传播分为 3 个阶段: 捕获阶段, 目标阶段和冒泡阶段
 
-| v-on 指令的修饰符       | 原生 JS                                                                                                                       |
+| v-on 指令的修饰符       | 原生 JS (Vanilla JS)                                                                                                          |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `v-on:[evType].stop`    | `ev.stopPropagation();` .stop 指令: 阻止事件冒泡                                                                              |
 | `v-on:[evType].prevent` | `ev.preventDefault();` .prevent 指令: 阻止事件的默认行为                                                                      |
 | `v-on:[evType].capture` | `elem.addEventListener(evType, listener, true /* useCapture */)`.capture 指令: 事件在捕获阶段触发, 而不是在默认的冒泡阶段触发 |
 | `v-on:[evType].self`    | .self 指令: 只触发本元素绑定的事件, 不触发从子元素冒泡的事件                                                                  |
 | `v-on:[evType].once`    | `elem.removeEventListener(*args)` .once 指令: 事件只触发一次, 触发后移除监听器                                                |
-| `@scroll.passive`       | .passive 指令: 对于滚动, 触摸事件, 不调用 `ev.preventDefault()`, 提高流畅度                                                   |
+| `@scroll.passive`       | .passive 指令: 对于滚动、触摸事件, 不调用 `ev.preventDefault()`, 提高流畅度                                                   |
 | `@keydown.enter`        | 键修饰符 Key Modifiers: 按 enter 键                                                                                           |
 | `@click.ctrl`           | 系统修饰符 System Modifiers: 按 ctrl 键并点击                                                                                 |
 
@@ -277,7 +274,7 @@ function enterHandler(ev: Event) {
 
 ### Vue3.2 新增 v-memo
 
-v-memo 接收一个依赖项数组, 元素或组件重新渲染时, 如果依赖项数组中的所有元素都未更新, 则跳过渲染, 通常 v-memo 与 v-for 配合使用. 依赖项数组为空时, `v-memo="[]"` 等价于 `v-once`
+v-memo 接收一个依赖项数组, 组件重新渲染时, 如果依赖项数组中的所有元素都未更新, 则跳过渲染; 通常 v-memo 与 v-for 配合使用, 依赖项数组为空时, `v-memo="[]"` 等价于 `v-once`, 只渲染一次
 
 ```vue
 <script lang="ts" setup>
@@ -301,50 +298,25 @@ const addCnt2 = () => {
 
 ## 虚拟 DOM 和 diff 算法
 
-```html
-<!-- 真实 DOM -->
-<div>
-  <p></p>
-</div>
-```
-
-```js
-// 虚拟 DOM
-import { createElementVNode, openBlock, createElementBlock } from "vue";
-
-export function render(ctx, cache, $props, $setup, $data, $options) {
-  return (
-    openBlock(), createElementBlock("div", null, [createElementVNode("span")])
-  );
-}
-```
-
-真实 DOM 的属性过多, 操作真实 DOM 浪费性能, 虚拟 DOM 是 JS 对象
-
-```js
-const div = document.createElement("div");
-let str = "";
-for (const key in div) {
-  str += key + " ";
-}
-console.log(str);
-```
-
-- 没有 key: 替换, 新增, 删除性能差
-- 有 key: 性能好
-
 vnode: Virtual DOM Node
 
-1. 从头到尾对比 vnode 类型和 key, 不同则 break, 转到 2
-2. 从尾到头对比 vnode 类型和 key, 不同则 break, 转到 3
-3. 如果旧节点全部 patch, 有多余的新节点, 则挂载
-4. 如果新节点全部 patch, 有多余的旧节点, 则卸载
-5. 特殊情况: 乱序 (基于[最长递增子序列 LIS](https://leetcode.cn/problems/longest-increasing-subsequence/description/))
+真实 DOM 的属性过多, 操作真实 DOM 浪费性能, 虚拟 DOM 是一个 JS 对象
 
-原序列 2,3,4,0,6,1 的最长递增子序列为 2,3,4. 将原 vnode 序列的最长递增子序列作为参照序列, 移动不在参照序列中的节点
+### diff 算法
+
+<!-- 2001.05.28 -->
+<image src="../assets/diff.png" alt="diff" width="528rem" />
+
+1. 前序对比: 从头到尾对比 vnode 类型和 key, 相同则复用, 不同则转到 2
+2. 后序对比: 从尾到头对比 vnode 类型和 key, 相同则复用, 不同则转到 3
+3. 如果旧节点全部 patch, 有多余的新节点, 则新增 (挂载)
+4. 如果新节点全部 patch, 有多余的旧节点, 则删除 (卸载)
+5. 特殊情况: 乱序 (基于[最长递增子序列 LIS](https://leetcode.cn/problems/longest-increasing-subsequence/description/))
+   - 例: 原序列 2,3,4,0,6,1 的最长递增子序列为 2,3,4
+   - 将原 vnode 序列的最长递增子序列作为参照序列, 复用、新增或删除不在参照序列中的节点
 
 - 错误实践: 使用索引 index (拼接其他值) 作为 key
-- 正确实践: 使用唯一值 id 作为 key
+- 正确实践: 使用唯一 id 作为 key
 
 ```vue
 <script lang="ts" setup>
@@ -369,125 +341,180 @@ const arr = ref<string[]>(["a", "b", "c", "d"]);
 </template>
 ```
 
-## ref, shallowRef, isRef, triggerRef, customRef
+## ref 家族
 
-> [!tip]
-> Vitest
-> `vitest --run --testNamePattern=TestSuiteName.testCaseName <TestFileRelativePath>`
-> 检查 -> 设置 -> 偏好设置 -> 控制台 -> 自定义格式设置工具
+家族成员: ref, shallowRef, isRef, triggerRef, customRef
 
-回顾 Vue2
-
-```ts
-export default {
-  data() {
-    return {
-      // 响应式对象
-      age: 22,
-    };
-  },
-};
-```
-
-- ref 深层响应式
-- shallowRef 浅层响应式
+- ref 深层响应式, 底层会调用 triggerRef 强制收集依赖, 触发深层响应式
+- shallowRef 浅层响应式, 只响应 `.value` 的改变
 - isRef 判断是否为使用 ref, shallowRef 创建的响应式对象
   - `isRef(refObj), isRef(shallowRefObj)` 返回 true
   - `isRef(reactiveObj), isRef(shallowReactiveObj)` 返回 false
-- triggerRef 调用 triggerRef 强制触发深度响应式, `shallowRef + triggerRef` 等价于 `ref`
+- triggerRef 调用 triggerRef 强制收集依赖, 触发深层响应式, `shallowRef + triggerRef` 等价于 `ref`
 
-同时使用 ref/reactive 和 shallowRef/shallowReactive 时, shallowRef/shallowReactive 会表现的像深层响应式
-
-> [!caution]
-> Vue 组件的 ref/reactive 依赖改变时, 会更新整个 template [vuejs/core #10680](https://github.com/vuejs/core/issues/10680)
-
-```js
-class RefImpl {
-  set value(newVal) {
-    // ...
-    triggerRefValue(this, newVal); // 触发深度响应式
-  }
-
-  export function triggerRef(ref: Ref) {
-    triggerRefValue(...args); // 触发深度响应式
-  }
-}
-```
-
-### ref 绑定 DOM 元素
+同时使用 ref 和 shallowRef 时, shallowRef 的浅层响应式会失效, 表现为深层响应式 (参考 setUser4)
 
 ```vue
 <script lang="ts" setup>
-const divRef = ref<HTMLDivElement>();
-onMounted(() => {
-  console.log(divRef.value?.innerText);
-});
+import { ref, shallowRef, triggerRef } from "vue";
+
+const user = ref({ name: "Alice", age: 1 });
+const user2 = shallowRef({ name: "Bob", age: 2 });
+
+// user.value.age++
+const setUser = () => user.value.age++;
+// 无改变
+const setUser2 = () => user2.value.age++;
+// user2.value.age++
+const setUser3 = () =>
+  (user2.value = { ...user2.value, age: user2.value.age + 1 });
+// user.value.age++; user2.value.age++
+const setUser4 = () => {
+  user.value.age++;
+  user2.value.age++;
+};
+// user2.value.age++
+const setUser5 = () => {
+  user2.value.age++;
+  triggerRef(user2); // 强制收集依赖
+};
 </script>
 
 <template>
-  <div ref="divRef">ref 绑定 DOM 元素</div>
+  <main>
+    <div>user: {{ JSON.stringify(user) }}</div>
+    <div>user2: {{ JSON.stringify(user2) }}</div>
+
+    <button @click="setUser">setUser</button>
+    <button @click="setUser2">setUser2</button>
+    <button @click="setUser3">setUser3</button>
+    <button @click="setUser4">setUser4</button>
+    <button @click="setUser5">setUser5</button>
+  </main>
 </template>
 ```
 
 ### customRef
 
-```ts
-function customRefFactory<T>(val: T, timeout: number) {
-  let timer: any;
-  const myRef: ReturnType<typeof customRef> = customRef(
+```vue
+<script lang="ts" setup>
+import { customRef, type Ref } from "vue";
+
+const primaryValue = "raw";
+
+function debouncedRef<T>(value: T, timeout: number) {
+  let timer: number | null = null;
+  const ret: Ref<T> = customRef<T>(
     (
       track: () => void /** 收集依赖 */,
       trigger: () => void /** 触发更新 */,
     ) => {
       return {
         get: () => {
-          track();
-          return val;
+          track(); // 收集依赖
+          return value;
         },
-        set: (newVal: T) => {
-          clearTimeout(timer);
+        set: (newValue: T) => {
+          if (timer) {
+            clearTimeout(timer);
+          }
           timer = setTimeout(() => {
-            val = newVal;
-            trigger();
+            value = newValue;
+            trigger(); // 触发更新
             timer = null;
           }, timeout);
         },
       };
     },
   );
-  return myRef;
+  return ret;
 }
+
+const str = debouncedRef(primaryValue, 3000);
+const setPrimaryValue = () => {
+  str.value = "brandNew";
+};
+</script>
+
+<template>
+  <main>
+    <div>str: {{ str }}</div>
+    <button @click="setPrimaryValue">setPrimaryValue</button>
+  </main>
+</template>
 ```
 
-## reactive, shallowReactive
+### ref 绑定 DOM 元素
 
-reactive 返回一个代理对象, 不能对该代理对象 itemsProxy 直接赋值, 否则会失去响应式
+```vue
+<script lang="ts" setup>
+import { ref, onMounted, useTemplateRef } from "vue";
 
-- ref 可以用于引用数据类型, 也可以用于基本数据类型; reactive 只能用于引用数据类型
-- ref 访问, 修改响应式对象的值时需要加 .value; reactive 不需要
-- ref 更适合简单类型; reactive 更适合复杂类型
+const sameName = ref<HTMLDivElement>();
+// 也可以使用 useTemplateRef
+const divElem = useTemplateRef("sameName");
+onMounted(() => {
+  console.log(sameName.value?.innerText);
+  console.log(divElem.value?.innerText);
+});
+</script>
 
-- reactive 深层响应式
-- shallowReactive 浅层响应式
+<template>
+  <div ref="sameName">Great Vue3</div>
+</template>
+```
 
-同时使用 ref/reactive 和 shallowRef/shallowReactive 时, shallowRef/shallowReactive 会表现的像深层响应式
+## reactive 家族, readonly
 
-## readonly
+家族成员: reactive, shallowReactive
 
-返回一个只读的响应式对象
+- reactive 深层响应式, 底层会调用 triggerRef 强制收集依赖, 触发深层响应式
+- shallowReactive 浅层响应式, 只响应 `.[keyName]` 的改变
+- readonly 返回一个只读的响应式对象
+
+相同的, 同时使用 reactive 和 shallowReactive 时, shallowReactive 的浅层响应式会失效, 表现为深层响应式
+
+### reactive 对比 React 的 useState
+
+1. React 的 useState 可以接收任意的数据类型
+2. reactive 只能接收引用数据类型
+3. React 的 useState 返回一个普通对象 (状态) 和 set 函数, 调用 set 函数更新状态时, 必须修改该普通对象 (状态) 的引用的指向
+4. reactive 返回一个代理对象, 不能修改该代理对象的引用的指向, 否则会失去响应式!
+
+### ref 对比 reactive
 
 ```ts
-const itemsProxy = reactive<string[]>([]);
-const readonlyItemsProxy = readonly(itemsProxy);
-readonlyItemsProxy.push("item");
-// Reactive<Array(0)>
-// Reactive<Array(0)> (readonly)
-console.log(itemsProxy, readonlyItemsProxy);
-itemsProxy.push("item");
-// Reactive<Array(1)>
-// Reactive<Array(1)> (readonly)
-console.log(itemsProxy, readonlyItemsProxy);
+const refVal = ref(1);
+const refVal2 = ref({ name: "whoami", age: 1 });
+const reactiveVal = reactive({ name: "whoami", age: 1 });
 ```
+
+1. ref 可以接收任意的数据类型; reactive 只能接收引用数据类型
+2. ref 存取时需要加 `.value`; reactive 不需要
+3. ref 更适合简单数据结构; reactive 更适合复杂数据结构
+4. reactiveVal 是一个 Proxy 对象
+   - ref 接收基本数据类型时, refVal.value 是一个基本数据类型的值
+   - ref 接收引用数据类型时, refVal2.value 是一个 Proxy 对象
+5. 可以直接对 refVal.value 赋值; 不能直接对 reactiveVal 赋值, 否则会失去响应式!
+
+### readonly
+
+```ts
+import { reactive, readonly } from "vue";
+
+const items = reactive<string[]>([]);
+const readonlyItems = readonly(items);
+readonlyItems.push("item");
+console.log(items, readonlyItems); // [] []
+
+items.push("item");
+console.log(items, readonlyItems); // ["item"] ["item"]
+```
+
+> [!important] ref/reactive 深层响应式
+> 使用的 ref/reactive 创建的响应式对象更新时, 会更新整个 template, 类似 React 重新执行整个组件函数
+
+================================================= 07/05
 
 ## toRef, toRefs, toRaw
 

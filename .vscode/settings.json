@@ -7,7 +7,7 @@
     "tiancheng",
     "tianchenghang",
     "varchar",
-    "vitepress"
-  ],
-  "editor.fontFamily": "Iosevka Light, LXGW WenKai"
+    "vitepress",
+    "vnode"
+  ]
 }
