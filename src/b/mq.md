@@ -2,8 +2,6 @@
 
 ## 概念
 
-![kafka](../assets/kafka.png)
-
 - cluster 集群: 运行 kafka 实例的机器集合
 - broker 代理: 单个 kafka 实例
 - event 事件: 即消息, 包含: 事件键、事件值、事件时间戳

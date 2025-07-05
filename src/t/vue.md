@@ -305,7 +305,7 @@ vnode: Virtual DOM Node
 ### diff 算法
 
 <!-- 2001.05.28 -->
-<image src="../assets/diff.png" alt="diff" width="528rem" />
+<image src="/assets/diff.png" alt="diff" width="528rem" />
 
 1. 前序对比: 从头到尾对比 vnode 类型和 key, 相同则复用, 不同则转到 2
 2. 后序对比: 从尾到头对比 vnode 类型和 key, 相同则复用, 不同则转到 3
@@ -484,18 +484,18 @@ onMounted(() => {
 ### ref 对比 reactive
 
 ```ts
-const refVal = ref(1);
-const refVal2 = ref({ name: "whoami", age: 1 });
-const reactiveVal = reactive({ name: "whoami", age: 1 });
+const refObj = ref(1);
+const refObj2 = ref({ name: "whoami", age: 1 });
+const reactiveObj = reactive({ name: "whoami", age: 1 });
 ```
 
 1. ref 可以接收任意的数据类型; reactive 只能接收引用数据类型
 2. ref 存取时需要加 `.value`; reactive 不需要
 3. ref 更适合简单数据结构; reactive 更适合复杂数据结构
-4. reactiveVal 是一个 Proxy 对象
-   - ref 接收基本数据类型时, refVal.value 是一个基本数据类型的值
-   - ref 接收引用数据类型时, refVal2.value 是一个 Proxy 对象
-5. 可以直接对 refVal.value 赋值; 不能直接对 reactiveVal 赋值, 否则会失去响应式!
+4. reactiveObj 是一个 Proxy 对象
+   - ref 接收基本数据类型时, refObj.value 是一个基本数据类型的值
+   - ref 接收引用数据类型时, refObj2.value 是一个 Proxy 对象
+5. 可以直接对 refObj.value 赋值; 不能直接对 reactiveObj 赋值, 否则会失去响应式!
 
 ### readonly
 
@@ -514,54 +514,27 @@ console.log(items, readonlyItems); // ["item"] ["item"]
 > [!important] ref/reactive 深层响应式
 > 使用的 ref/reactive 创建的响应式对象更新时, 会更新整个 template, 类似 React 重新执行整个组件函数
 
-================================================= 07/05
-
 ## toRef, toRefs, toRaw
 
-- toRef, toRefs 将 refObj.value 或 reactiveObj 的属性转换为响应式对象
-- 直接解构会失去响应式, 使用 toRefs 解构可以保留响应式
-- toRaw: 将 refObj.value 或 reactiveObj 转换为普通对象
+- toRef: 将 ref/reactive 创建的响应式对象上的属性值, 转换为响应式对象 (值是绑定的)
+- toRefs: 将 ref/reactive 创建的响应式对象上的属性值, 批量解构为响应式对象 (值是绑定的)
+- toRaw: 将代理对象 refObj.value, reactiveObj 转换为普通对象
+- toRef/toRefs 作用于普通对象时, 视图不会更新 (没有 track, trigger)
 
-```vue
-<script lang="ts" setup>
-const obj = { name: "whoami", age: 1 };
-// 错误实践: toRef, toRefs 一个普通对象
-const age = toRef(obj /** 对象 */, "age" /** 对象的 key */);
-
-const obj2 = ref({ name: "whoami2", age: 2 });
-const _age2 = toRef(obj2.value, "age");
-const { name: name2, age: age2 } = toRefs(obj2.value);
-
-const obj3 = reactive({ name: "whoami3", age: 3 });
-const _age3 = toRef(obj3, "age");
-const { name: name3, age: age3 } = toRefs(obj3);
-
-// {name: 'whoami', age: 1} {name: 'whoami', age: 1}
-console.log(obj, toRaw(obj));
-// Ref<Object> Reactive<Object> {name: 'whoami2', age: 2}
-console.log(obj2, obj2.value, toRaw(obj2.value));
-// Reactive<Object> {name: 'whoami3', age: 3}
-console.log(obj3, toRaw(obj3));
-</script>
-
-<template>
-  <!-- 错误实践: toRef, toRefs 一个普通对象,
-   响应式对象 age 值更新, 视图不会更新 (没有 track, trigger)  -->
-  <p>{{ obj }}</p>
-  <p>{{ age }}</p>
-
-  <!-- toRef, toRefs 一个 ref/reactive 对象,
-   响应式对象 name2, _age2, age 值更新, 视图也会更新 (有 track, trigger)   -->
-  <p>{{ obj2 }}</p>
-  <p>{{ `${name2} ${_age2} ${age2}` }}</p>
-  <p>{{ obj3 }}</p>
-  <p>{{ `${name3} ${_age3} ${age3}` }}</p>
-</template>
+```ts
+// 实现 toRefs
+const myToRefs = (obj) => {
+  const ret = {};
+  for (const k in obj) {
+    ret[k] = toRef(obj, k);
+  }
+  return ret;
+};
+// 实现 toRaw
+const myToRaw = (obj) => obj["__v_raw"];
 ```
 
-> [!tip]
->
-> `get value() { track(); /** 跟踪依赖 */}` 和 `set value(newVal) { trigger(); /** 触发更新 */}` 以更新视图
+================================================= 07/05
 
 ## 响应式原理
 
