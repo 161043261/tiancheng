@@ -9,6 +9,7 @@ export default {
         { text: "CSS(1)", link: "/b/css" },
         { text: "CSS(2)", link: "/b/css2" },
         { text: "Git", link: "/b/git" },
+        { text: "Go", link: "/b/go" },
         { text: "JS/TS", link: "/b/js_ts" },
         { text: "Linux", link: "/b/linux" },
         { text: "消息队列", link: "/b/mq" },
