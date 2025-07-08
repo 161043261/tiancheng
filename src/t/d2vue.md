@@ -1,43 +1,88 @@
 # Vue3 高级
 
-## Event Loop 事件循环
+## 缓存组件 `<KeepAlive />`
 
-JS 也支持多线程 webWorker, 但不允许操作 DOM
+1. 默认缓存 `<KeepAlive />` 内部的所有组件
+2. include 包含属性: 缓存指定 name 的组件, 支持 `string` (可以以逗号分隔), `RegExp` 或 `(string | RegExp)[]`
+3. exclude 属性: 不缓存指定 name 的组件
+4. max 属性: 最大缓存组件数, 如果实际组件数 > max, 则使用 LRU 算法计算具体缓存哪些组件
 
-## KeepAlive 缓存组件
+::: code-group
 
-1. 默认缓存 KeepAlive 标签内的全部组件
-2. include 属性: 缓存包含的组件, 支持字符串, 正则表达式或数组
-3. exclude 属性: 不缓存排除的组件
-4. max 属性: 缓存的最大组件数, 如果实际组件数 > max, 则使用 LRU 算法计算缓存哪些组件
-
-```vue
+```vue [ParentDemo]
 <script lang="ts" setup>
 import { ref } from "vue";
-import KeepAliveBoy from "./KeepAliveBoy.vue";
-import KeepAliveGirl from "./KeepAliveGirl.vue";
+import BoyDemo from "./BoyDemo.vue";
+import GirlDemo from "./GirlDemo.vue";
 
-const flag = ref(true);
+const flag = ref<boolean>(true);
 </script>
 
 <template>
-  <div>
-    <el-button type="primary" @click="flag = !flag">切换组件</el-button>
-    <KeepAlive :include="'KeepAliveBoy'" :exclude="[/'girl'/i]" :max="1">
-      <KeepAliveBoy v-if="flag"></KeepAliveBoy>
-      <KeepAliveGirl v-else></KeepAliveGirl>
-    </KeepAlive>
-  </div>
+  <KeepAlive>
+    <BoyDemo v-if="flag" />
+    <GirlDemo v-else />
+  </KeepAlive>
+  <button @click="flag = !flag">switch</button>
 </template>
 ```
 
+```vue [BoyDemo]
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const name = ref("");
+const age = ref(0);
+</script>
+
+<template>
+  <div>Boy</div>
+  <input v-model="name" type="text" />
+  <input v-model="age" type="number" />
+</template>
+```
+
+```vue [GirlDemo]
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const name = ref("");
+const age = ref(0);
+</script>
+
+<template>
+  <div>Girl</div>
+  <input v-model="name" type="text" />
+  <input v-model="age" type="number" />
+</template>
+```
+
+:::
+
+### 缓存组件的生命周期
+
 使用 KeepAlive 缓存组件时, 会增加两个生命周期 onActivated 和 onDeactivated
 
-## Transition 过渡/动画组件
+```ts
+// 这两个生命周期钩子不仅适用于 <KeepAlive /> 缓存的根组件, 也适用于缓存树的后代组件
+onActivated(() => {
+  // 调用时机为组件挂载时, 和每次读缓存后插入到 DOM 中
+});
 
-Transition 基于状态变化
+onDeactivated(() => {
+  // 调用时机为组件卸载时, 和每次从 DOM 中移除后写缓存
+});
+```
 
-### 对比 CSS 过渡 transition 和动画 animation
+## `<Transition />` 过渡/动画组件
+
+- `<Transition />` 只允许一个直接子元素; 同时, `<Transition />` 包裹组件时, 组件必须有唯一的根元素, 否则无法应用过渡动画
+- `<Transition />` 会在一个元素或组件插入/移除 DOM (v-if 挂载/卸载)、显示/隐藏 (v-show) 时应用过渡动画
+- `<TransitionGroup />` 允许多个直接子元素, 会在一个 v-for 列表中的元素或组件插入、删除、移动时应用过渡动画
+
+### [enter | leave]-[from | active | to]
+
+对比 CSS 过渡 transition 和动画 animation
 
 |              | 过渡 transition           | 动画 animation                       |
 | ------------ | ------------------------- | ------------------------------------ |
@@ -45,196 +90,269 @@ Transition 基于状态变化
 | 状态         | 只有起始状态和结束状态    | 可以使用 @keyframes 定义多个关键帧   |
 | 自动循环播放 | 不支持                    | 支持                                 |
 
-### Transition 生命周期钩子和 animation.css
-
-[animation.css](https://animate.style/)
-
-```bash
-pnpm install animate.css
-```
-
-- beforeEnter, enter, afterEnter, enterCancelled
-- beforeLeave, leave, afterLeave, leaveCancelled
+前置要求: 安装 [tailwindcss](https://tailwindcss.com/docs/installation/using-vite) 和 [animate.css](https://animate.style/)
 
 ::: code-group
 
-```vue [script]
+```vue [Demo 1]
 <script lang="ts" setup>
-import "animate.css";
+import { ref } from "vue";
 
-const display = ref(true);
-
-function enterActive(el: Element, done: () => void) {
-  console.log("enterActive");
-  setTimeout(() => done(), 3000);
-}
-
-function leaveActive(el: Element, done: () => void) {
-  console.log("leave-active");
-  setTimeout(() => done(), 3000);
-}
+const flag = ref<boolean>(true);
 </script>
+
+<template>
+  <button @click="flag = !flag">mount/unMount</button>
+  <!-- 默认 name="v" -->
+  <Transition name="my-prefix">
+    <div v-if="flag" className="w-50 h-50 bg-lime-200">TransitionDemo</div>
+  </Transition>
+</template>
+
+<style lang="css" scoped>
+@reference "tailwindcss";
+
+/** 默认 .v-enter-from, .v-leave-to */
+.my-prefix-enter-from,
+.my-prefix-leave-to {
+  @apply w-0 h-0;
+}
+
+/** 默认 v-enter-active, .v-leave-active */
+.my-prefix-enter-active,
+.my-prefix-leave-active {
+  @apply transition-all duration-1500;
+}
+
+/** 默认 v-enter-to, .v-leave-from */
+.my-prefix-enter-to,
+.my-prefix-leave-from {
+  @apply w-50 h-50 rotate-360;
+}
+</style>
 ```
 
-```vue [template]
+```vue [Demo 2]
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const flag = ref<boolean>(true);
+</script>
+
+<template>
+  <button @click="flag = !flag">mount/unMount</button>
+  <!-- 除了 .[my-prefix]-[enter | leave]-[from | active | to] 约定的类名 -->
+  <!-- 也可以自定义类名 [enter | leave]-[from | active | to]-class="your_custom_className" -->
+
+  <!-- :duration="1500" 表示持续时间 1500ms -->
+  <!-- 或 :duration="{ enter: 1500, leave: 1500 }" -->
+  <Transition
+    :duration="{ enter: 1500, leave: 1500 }"
+    leaveActiveClass="animate__animated animate__fadeOut"
+    enterActiveClass="animate__animated animate__fadeIn"
+  >
+    <div v-if="flag" className="w-50 h-50 bg-lime-200">TransitionDemo</div>
+  </Transition>
+</template>
+```
+
+:::
+
+### `<Transition />` 的 JS 钩子
+
+| 事件名         | 对应的 CSS 类名 |
+| -------------- | --------------- |
+| beforeEnter    | v-enter-from    |
+| enter          | v-enter-active  |
+| afterEnter     | v-enter-to      |
+| enterCancelled |                 |
+| beforeLeave    | v-leave-from    |
+| leave          | v-leave-active  |
+| afterLeave     | v-leave-to      |
+| leaveCancelled |                 |
+
+案例
+
+```vue
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const flag = ref(true);
+
+const handleEnterActive = (el: Element, done: () => void) => {
+  console.log("onEnterActive");
+  setTimeout(() => done() /** 过渡结束 */, 3000);
+};
+
+const handleLeaveActive = (el: Element, done: () => void) => {
+  console.log("onLeaveActive");
+  setTimeout(() => done() /** 过渡结束 */, 3000);
+};
+</script>
+
 <template>
   <div>
-    <el-button type="primary" @click="display = !display">switch</el-button>
-    <!-- 等价于
-    <Transition
-      enter-active-class="animate__animated animate__fadeIn"
-      leave-active-class="animate__animated animate__fadeOut"
-    > -->
-    <!-- duration: 过渡动画持续 1s -->
+    <button type="button" @click="flag = !flag">switch</button>
     <Transition
       class="animate__animated"
-      enter-active-class="animate__fadeIn"
-      leave-active-class="animate__fadeOut"
+      enterActiveClass="animate__fadeIn"
+      leaveActiveClass="animate__fadeOut"
       :duration="1000"
-      @beforeEnter="(el: Element) => console.log('beforeEnter')"
-      @enter="enterActive"
-      @afterEnter="(el: Element) => console.log('afterEnter')"
-      @enterCancelled="(el: Element) => console.log('enterCancelled')"
-      @before-leave="(el: Element) => console.log('before-leave')"
-      @leave="leaveActive"
-      @after-leave="(el: Element) => console.log('after-leave')"
-      @leave-cancelled="(el: Element) => console.log('leave-cancelled')"
+      @beforeEnter="(el: Element) => console.log('onBeforeEnter')"
+      @enter="handleEnterActive"
+      @afterEnter="(el: Element) => console.log('onAfterEnter')"
+      @enterCancelled="(el: Element) => console.log('onEnterCancelled')"
+      @beforeLeave="(el: Element) => console.log('onBeforeLeave')"
+      @leave="handleLeaveActive"
+      @afterLeave="(el: Element) => console.log('onAfterLeave')"
+      @leaveCancelled="(el: Element) => console.log('onLeaveCancelled')"
     >
-      <div class="box" v-if="display">Transition With Animate.css</div>
+      <div class="box" v-if="flag">Transition by animate.css</div>
     </Transition>
 
-    <Transition name="fade">
+    <Transition name="my-prefix">
       <!-- className prefix -->
-      <div class="box" v-show="display" style="background: lightpink">
-        Transition
+      <div class="box" v-show="flag" style="background: lightpink">
+        Transition by custom CSS
       </div>
     </Transition>
   </div>
 </template>
-```
 
-```vue [style]
 <style lang="scss" scoped>
 @mixin wh0 {
   width: 0;
   height: 0;
 }
 
-@mixin wh200 {
+@mixin wh50 {
   width: 200px;
   height: 200px;
 }
 
 .box {
-  @include wh200;
-  background: lightblue;
+  @include wh50;
+  background: skyblue;
 }
 
-.fade-enter-from {
+.my-prefix-enter-from {
   @include wh0;
   transform: rotate(360deg);
 }
 
-.fade-enter-active {
+.my-prefix-enter-active {
   transition: all 3s ease;
 }
 
-// .fade-enter-to {}
-// .fade-leave-from {}
+// .my-prefix-enter-to {}
+// .my-prefix-leave-from {}
 
-.fade-leave-active {
+.my-prefix-leave-active {
   transition: all 3s ease;
 }
 
-.fade-leave-to {
+.my-prefix-leave-to {
   @include wh0;
   transform: rotate(360deg);
 }
 </style>
 ```
 
-:::
-
-### Transition 案例
+### `<Transition />` + [GSAP](https://gsap.com/demos/)
 
 ```vue
 <!-- pnpm add gsap -->
 <script lang="ts" setup>
 import gsap from "gsap";
+import { ref } from "vue";
 
-const mountOrNot = ref(true);
+const isAlive = ref(true);
+const handleBeforeEnter = (el: Element) =>
+  gsap.set(el, { width: 0, height: 0 });
+
+const handleEnter = (el: Element, done: () => void) =>
+  gsap.to(el, { width: 200, height: 200, onComplete: done });
+
+const handleLeave = (el: Element, done: () => void) =>
+  gsap.to(el, { width: 0, height: 0, onComplete: done });
 </script>
 
 <template>
-  <div>
-    <el-button type="success" @click="mountOrNot = !mountOrNot"
-      >switch</el-button
-    >
-    <Transition
-      @beforeEnter="
-        (el: Element) => {
-          gsap.set(el, {
-            width: 0,
-            height: 0,
-          });
-        }
-      "
-      @enter="
-        // type Callback = (...args: any[]) => void | null;
-        (el: Element, done: gsap.Callback) => {
-          gsap.to(el, {
-            width: 200,
-            height: 200,
-            onComplete: done,
-          });
-        }
-      "
-      @leave="
-        (el: Element, done: gsap.Callback) => {
-          gsap.to(el, {
-            width: 0,
-            height: 0,
-            onComplete: done,
-          });
-        }
-      "
-    >
-      <div v-if="mountOrNot" class="box">Transition With GASP</div>
-    </Transition>
-  </div>
+  <button type="button" @click="isAlive = !isAlive">switch</button>
+  <Transition
+    @beforeEnter="handleBeforeEnter"
+    @enter="handleEnter"
+    @leave="handleLeave"
+  >
+    <div v-if="isAlive" class="h-50 w-50 bg-lime-200">Transition by GASP</div>
+  </Transition>
+</template>
+```
+
+### appear-[from | active | to]-class
+
+appear-[from | active | to]-class 只在首次渲染时应用 1 次过渡动画
+
+```vue
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const flag = ref<boolean>(true);
+</script>
+
+<template>
+  <button @click="flag = !flag">mount/unMount</button>
+  <Transition
+    appear
+    appearFromClass="my-appear-from"
+    appearActiveClass="my-appear-active"
+    appearToClass="my-appear-to"
+  >
+    <!-- 只在首次渲染时应用 1 次过渡动画 -->
+    <div v-if="flag" className="w-50 h-50 bg-lime-200">TransitionDemo</div>
+  </Transition>
 </template>
 
-<style lang="scss" scoped>
-.box {
-  height: 200px;
-  width: 200px;
-  background: lightgreen;
+<style lang="css" scoped>
+@reference "tailwindcss";
+
+.my-appear-from {
+  @apply w-0 h-0;
+}
+
+.my-appear-active {
+  @apply transition-all duration-1500;
+}
+
+.my-appear-to {
+  @apply w-50 h-50;
 }
 </style>
 ```
 
-### TransitionGroup
+## `<TransitionGroup />`
 
-> [!warning]
->
-> - Transition 只允许一个直接子元素; Transition 包裹组件时, 组件必须有唯一的根元素, 否则不能被动画化
-> - TransitionGroup 允许多个直接子元素
+- `<Transition />` 只允许一个直接子元素; 同时, `<Transition />` 包裹组件时, 组件必须有唯一的根元素, 否则无法应用过渡动画
+- `<Transition />` 会在一个元素或组件插入/移除 DOM (v-if 挂载/卸载)、显示/隐藏 (v-show) 时应用过渡动画
+- `<TransitionGroup />` 允许多个直接子元素, 会在一个 v-for 列表中的元素或组件插入、删除、移动时应用过渡动画
+
+### `<TransitionGroup />` 列表的插入、删除过渡
 
 ```vue
 <script lang="ts" setup>
 import { reactive } from "vue";
 import "animate.css";
 
-const list = reactive<number[]>([1, 2, 3, 4, 5]);
+const list = reactive<number[]>([0, 1, 2]);
 </script>
 
 <template>
-  <el-button @click="list.push(list.length + 1)">push</el-button>
-  <el-button @click="list.pop()">pop</el-button>
-  <!-- tag="section" tag 属性为多个 div 包裹一层 section 标签 -->
+  <button @click="list.push(list.length)">push</button>
+  <button @click="list.pop()">pop</button>
+  <!-- tag="htmlTagName" tag 属性为多个列表项包裹一层 htmlTagName 标签 -->
   <div class="wrapper">
     <TransitionGroup
-      tag="section"
+      tag="main"
       enter-active-class="animate__animated animate__bounceIn"
       leave-active-class="animate__animated animate__bounceOut"
     >
@@ -244,137 +362,88 @@ const list = reactive<number[]>([1, 2, 3, 4, 5]);
 </template>
 
 <style lang="scss" scoped>
-.wrapper > section {
+.wrapper > main {
+  border: 1px solid #333;
   display: flex;
   // flex-wrap: nowrap; // 单行 flex 容器
   flex-wrap: wrap; // 多行 flex 容器
-  border: 1px solid #ccc;
-  .item {
-    margin: 0 10px;
-  }
+  gap: 1rem;
 }
 </style>
 ```
 
-### TransitionGroup 案例
+### `<TransitionGroup />` 列表的移动过渡
 
 ```vue
-<!-- pnpm i lodash @types/lodash -->
+<!-- pnpm i lodash && pnpm i @types/lodash -D -->
 <script lang="ts" setup>
 import { ref } from "vue";
 import { shuffle } from "lodash";
 
-// [undefined, undefined, undefined]
-// new Array(3).fill(undefined)
-// 等价于 Array.from({ length: 3 })
-// 等价于 Array.apply(null, { length: 3 })
-const list = ref(
-  Array.apply(null, {
-    length: 81,
-  } as number[]).map((val, idx) => ({
-    id: idx,
-    val: (idx % 9) + 1,
-  })),
+const arr = ref(
+  Array.from({ length: 81 }, (_, idx) => ({ key: idx, val: (idx % 9) + 1 })),
 );
 
-function shuffleList() {
-  list.value = shuffle(list.value);
-}
+const shuffleList = () => (arr.value = shuffle(arr.value));
 </script>
 
 <template>
   <div>
-    <el-button @click="shuffleList">shuffleList</el-button>
-    <!-- move-class: 平移的过渡效果 -->
-    <TransitionGroup move-class="mv" class="wrapper" tag="div">
-      <!-- v-for 绑定 key 时不能使用 idx, 否则无法实现过渡效果 -->
-      <div class="item" v-for="item of list" :key="item.id">
+    <button @click="shuffleList">shuffleList</button>
+    <!-- move-class: 平移的过渡动画 -->
+    <TransitionGroup moveClass="mv" class="flex flex-wrap w-[378px]" tag="div">
+      <!-- v-for 绑定 key 时, 不能使用数组下标, 否则无法应用过渡动画 -->
+      <div
+        class="w-10 h-10 border-slate-300 border-1 flex justify-center items-center"
+        v-for="item of arr"
+        :key="item.key"
+      >
         {{ item.val }}
       </div>
     </TransitionGroup>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.wrapper {
-  display: flex;
-  flex-wrap: wrap; // 多行 flex 容器
-  width: calc(27px * 9);
-  .item {
-    width: 25px;
-    height: 25px;
-    border: 1px solid #ccc;
-    display: flex;
-    justify-content: center; /** 水平居中 */
-    align-items: center; /** 垂直居中 */
-  }
-}
-
+<style lang="css" scoped>
 .mv {
   transition: all 1s;
 }
 </style>
 ```
 
-## [GASP](https://gsap.com/) 动画库
+## 状态过渡 + [GASP](https://gsap.com/)
 
-案例: GASP 状态过渡
+案例
 
 ```vue
 <script setup lang="ts">
 import gsap from "gsap";
+
+import { reactive, watch } from "vue";
 const num = reactive({
-  curVal: 0,
-  tweenVal: 0,
+  targetVal: 0,
+  renderVal: 0,
 });
 
 watch(
-  () => num.curVal, // getter
+  () => num.targetVal,
   (newVal, oldVal) => {
-    console.log(newVal, oldVal);
+    console.log(newVal, "<-", oldVal);
     gsap.to(num, {
-      duration: 1,
-      tweenVal: newVal,
+      duration: 1, // 1s
+      renderVal: newVal,
     });
   },
 );
 </script>
 
 <template>
-  <div>
-    <el-input v-model="num.curVal" :step="20" type="number"></el-input>
-    <div>
-      {{ num.tweenVal.toFixed(0) }}
-    </div>
-  </div>
+  <input v-model="num.targetVal" :step="20" type="number" />
+  <div>{{ num.renderVal.toFixed(0) }}</div>
 </template>
 ```
 
-## Vue 中使用 JSX
-
-| Vue                | JSX                                          |
-| ------------------ | -------------------------------------------- |
-| v-bind 或 :        | type={item.type}                             |
-| v-on 或 @          | onEventType={ callback }                     |
-| v-if               | if...else 或三元运算符                       |
-| v-show             | if...else 或三元运算符, `vueJsx` 也支持      |
-| v-for              | 数组的 map 方法                              |
-| props, emit, slots | setup(props, { emit, slots } /\*_ ctx _/) {} |
-| v-model            | v-bind + 事件回调, `vueJsx` 也支持           |
-
-```tsx
-export default defineComponent({
-  setup(props: IProps, { emit, slots } /** ctx */) {
-    return () => <></>;
-  },
-});
-```
-
-> [!warning] Babel
-> 源代码 == 编译器 (parse) ==>
-> 抽象语法树 AST == 转换过程 (transform) ==>
-> 修改后的 AST == 生成器 (generator) ==>
-> 转换后的代码
+=========================================================== 07/08
 
 ## 手写 Vite 插件解析 JSX
 
@@ -1909,12 +1978,7 @@ http
 }
 ```
 
-### 前端代理
-
-> [!warning]
-> 前端代理只适用于开发环境
-
-Vite 代理
+### Vite 代理
 
 ::: code-group
 

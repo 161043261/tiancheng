@@ -2,6 +2,7 @@
   "cSpell.words": [
     "beforeunload",
     "fulltext",
+    "gsap",
     "InnoDB",
     "MVCC",
     "tiancheng",
@@ -9,5 +10,5 @@
     "varchar",
     "vitepress",
     "vnode"
-  ],
+  ]
 }

@@ -1063,6 +1063,14 @@ export function UseImperativeHandleDemo2() {
 }
 ```
 
+```tsx [React18-]
+export default forwardRef<IExpose, IProps>(
+  (props: IProps, ref: React.ForwardedRef<IExpose>) => {
+    return <></>;
+  },
+);
+```
+
 :::
 
 ## hook: useContext (Vue provide/inject)

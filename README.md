@@ -1,8 +1,8 @@
 # vitepress
 
-vitepress 是一个静态站点生成器 (Static Site Generator, SSG)
+vitepress 是一个静态站点生成器 (SSG, Static Site Generator)
 
-```shell
+```bash
 pnpm add -D vitepress # npm
 pnpm vitepress init # npx
 ```
@@ -46,9 +46,9 @@ export default defineConfig({
 
 ```html
 <!-- 在新标签页中打开 -->
-[bilibili](https://www.bilibili.com/)
+[github](https://www.github.com/)
 <!-- 在本标签页中打开 -->
-[bilibili](https://www.bilibili.com/){target="_self"}
+[github](https://www.github.com/){target="_self"}
 ```
 
 ### vitepress 的 markdown 拓展
@@ -62,12 +62,16 @@ export default defineConfig({
 ````md
 ::: code-group
 
-```vue [script]
+```vue [ParentDemo]
 <script lang="ts" setup></script>
+<template>ParentDemo</template>
+<style lang="css" scoped></style>
 ```
 
-```vue [template]
-<template></template>
+```vue [ChildDemo]
+<script lang="ts" setup></script>
+<template>ChildDemo</template>
+<style lang="css" scoped></style>
 ```
 
 :::
@@ -95,5 +99,3 @@ sudo systemctl restart nginx
 sudo chmod -R 755 /var/www/dist
 echo "IPv4: http://121.41.121.204"
 ```
-
-`cd /path/to/dist && du -sh * | sort -h`
