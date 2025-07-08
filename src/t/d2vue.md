@@ -61,7 +61,7 @@ const age = ref(0);
 
 ### 缓存组件的生命周期
 
-使用 KeepAlive 缓存组件时, 会增加两个生命周期 onActivated 和 onDeactivated
+使用 `<KeepAlive />` 缓存组件时, 会增加两个生命周期 onActivated 和 onDeactivated
 
 ```ts
 // 这两个生命周期钩子不仅适用于 <KeepAlive /> 缓存的根组件, 也适用于缓存树的后代组件
@@ -443,30 +443,26 @@ watch(
 </template>
 ```
 
-=========================================================== 07/08
-
-## 手写 Vite 插件解析 JSX
+## 编写 vite 插件解析 JSX
 
 安装依赖
 
 ```bash
-pnpm i @vue/babel-plugin-jsx -D
-pnpm i @babel/core -D
-pnpm i @babel/plugin-transform-typescript -D
-pnpm i @babel/plugin-syntax-import-meta -D
+pnpm i @vue/babel-plugin-jsx -D &&              \
+pnpm i @babel/core -D &&                        \
+pnpm i @babel/plugin-transform-typescript -D && \
+pnpm i @babel/plugin-syntax-import-meta -D &&   \
 pnpm i @types/babel__core -D
 ```
 
 ```ts
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// Vite Plugin JSX/TSX
 import type { Plugin } from "vite";
 import babel from "@babel/core";
 import babelPluginJsx from "@vue/babel-plugin-jsx";
 
-export function vitePluginTsx(): Plugin {
+function vitePluginVueTsx(): Plugin {
   return {
-    name: "vite-plugin-tsx",
+    name: "vite-plugin-vue-tsx",
     config(/** config */) {
       return {
         esbuild: {
@@ -476,7 +472,6 @@ export function vitePluginTsx(): Plugin {
     },
     async transform(code, id) {
       if (/.tsx$/.test(id)) {
-        // @ts-ignore
         const ts = await import("@babel/plugin-transform-typescript").then(
           (res) => res.default,
         );
@@ -489,7 +484,6 @@ export function vitePluginTsx(): Plugin {
             [ts, { isTSX: true, allowExtensions: true }],
           ],
         });
-        // console.log(res?.code)
         return res?.code;
       }
       return code;
@@ -498,87 +492,58 @@ export function vitePluginTsx(): Plugin {
 }
 ```
 
-## 深入 v-model
+## v-model 双向绑定
 
-v-model 属于 Vue3 的破坏式更新, 本质是一个语法糖, 是 父v-bind/子props 和 父v-on/子emit 的组合
+### v-model 本质是语法糖
 
-1. 属性名: 默认 `modelValue`, `propName`
-2. 事件名: 默认 `update:model-value`, `update:prop-name`
-3. 支持多个 v-model
-4. v-model 内置修饰符 .trim, .number, .lazy, 支持自定义修饰符 v-model.customModifier
-
-`v-model="someValue"` 等价于 `v-model:modelValue="someValue"`, 等价于父组件 `v-bind:modelValue v-on:update:model-value="updateCallback"`, 子组件 `defineProps(['modelValue']), defineEmits('update:modelValue')`, 父组件的 `:modelValue="someValue"` 和子组件的 `defineProps(['modelValue'])` 实现了父到子的单向数据流, 子组件的 `defineEmits('update:modelValue')` 和父组件的 `@update:model-value="updateCallback"` 实现了子到父的单向数据流, 即 v-model 实现了双向数据绑定
-
-自定义修饰符: 父组件 `v-model:modelValue.customModifier`, 子组件 `defineProps<{ modelValueModifiers? : { customModifier: boolean } }>()`, 自定义修饰符存在时为 true, 不存在时为 undefined
+- 父组件使用 `v-bind` 传递 props 给子组件, 预定义的属性名 `modelValue`
+- 子组件派发预定义事件, 父组件使用 `v-on` 为预定义事件绑定回调函数, 监听子组件派发的预定义事件, 预定义事件名 `update:modelValue`
+- 父组件修改值时, 父组件使用 `v-bind` 传递新的 `modelValue` 值给子组件
+- 子组件修改值时, 子组件派发 `update:modelValue` 预定义事件, emit 发射新的 `modelValue` 值给父组件
+- 支持多个 v-model: v-model 预定义的属性名是 `modelValue`, 事件名是 `update:modelValue`, 支持自定义 v-model 的属性名、事件名
+- v-model 修饰符: .trim, .number, .lazy, 支持自定义修饰符 v-model.customModifier
 
 ::: code-group
 
-```vue [父组件]
+```vue [ParentDemo]
 <script setup lang="ts">
-import ModelChild from "./ModelChild.vue";
+import { ref } from "vue";
+import ChildDemo from "./ChildDemo.vue";
 
-const isShow = ref<boolean>(true);
-const text = ref<string>("云深不知处");
+const text = ref<string>("Awesome Vue3");
 </script>
 
 <template>
-  <main>
-    <p>v-model 父组件</p>
-    <div>isShow: {{ isShow }}</div>
-    <div>text: {{ text }}</div>
-    <div><button @click="isShow = !isShow">switch</button></div>
-    <ModelChild
-      v-model:modelValue="isShow"
-      v-model:textVal.myModifier="text"
-    ></ModelChild>
-    <!-- 等价于
-    v-bind props 属性名: modelValue
-    v-on   emit 事件名: update:modelValue, update:model-value
-    -->
-    <ModelChild
-      v-bind:modelValue="isShow"
-      @update:model-value="(newVal) => (isShow = newVal)"
-      v-bind:textVal="text"
-      @update:text-val="(newVal) => (text = newVal)"
-    ></ModelChild>
-  </main>
+  ParentDemo
+  <div>text: {{ text }}</div>
+  <ChildDemo v-model:textVal.myModifier="text" />
+  <ChildDemo :textVal="text" @update:textVal="(newVal) => (text = newVal)" />
 </template>
 ```
 
-```vue [子组件]
+```vue [ChildDemo]
 <script setup lang="ts">
 const props = defineProps<{
-  modelValue: boolean;
-  // modelValueModifiers? : {}
   textVal: string;
+  // 约定 xxxModifiers
   textValModifiers?: {
     myModifier: boolean; // 修饰符存在则为 true
   };
 }>();
 
-const emit = defineEmits(["update:modelValue", "update:textVal"]);
-function closeHandler() {
-  emit("update:modelValue", false);
-}
+const emit = defineEmits(["update:textVal"]);
 
-function inputHandler(ev: Event) {
-  console.log((ev.target as HTMLInputElement).value);
+const handleInput = (ev: Event) => {
   emit("update:textVal", (ev.target as HTMLInputElement).value);
-}
+};
 </script>
 
 <template>
-  <main class="main" v-if="modelValue">
-    <div>v-model 子组件</div>
-    <div>modelValue: {{ modelValue }}</div>
-    <div>
-      myModifier 是否存在: {{ props.textValModifiers?.myModifier ?? false }}
-    </div>
-    <div><button @click="closeHandler">close</button></div>
-    <div>
-      content: <input type="text" :value="textVal" @input="inputHandler" />
-    </div>
-  </main>
+  ChildDemo
+  <div>Has myModifier: {{ props.textValModifiers?.myModifier ?? false }}</div>
+  <div>
+    textVal: <input type="text" :value="textVal" @input="handleInput" />
+  </div>
 </template>
 ```
 

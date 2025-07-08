@@ -890,8 +890,8 @@ console.log("[ChildDemo] attrs:", attrs);
 ### 子传父
 
 1. 子组件使用 defineEmits 定义自定义事件
-2. 子组件触发自定义事件, 向父组件发射参数
-3. 父组件为子组件的自定义事件绑定回调函数; 自定义事件触发时, 父组件接收子组件发射的参数, 作为回调函数的参数
+2. 子组件派发自定义事件, emit 发射参数给父组件
+3. 父组件为子组件的自定义事件绑定回调函数, 监听子组件派发的自定义事件; 自定义事件派发时, 父组件接收子组件发射的参数, 作为回调函数的参数
 
 子组件
 
@@ -900,11 +900,11 @@ console.log("[ChildDemo] attrs:", attrs);
 ```vue{4} [写法 1]
 <script lang="ts" setup>
 // 子组件使用 defineEmits 定义自定义事件
-// 自定义事件名 evName, evName2 会被自动转换为 ev-name, ev-name2 (snake-case)
+// 自定义事件名 evName, evName2
 const emit = defineEmits(['evName', 'evName2'])
 
 const emitToParent = (ev: Event) => {
-  // 子组件触发自定义事件, 向父组件发射参数
+  // 子组件派发自定义事件, emit 发射参数给父组件
   emit('evName', ev)
 }
 const emitToParent2 = () => {
@@ -920,14 +920,14 @@ const emitToParent2 = () => {
 
 ```ts{3-6} [写法 2]
 // 子组件使用 defineEmits 定义自定义事件
-// 自定义事件名 evName, evName2 会被自动转换为 ev-name, ev-name2 (snake-case)
+// 自定义事件名 evName, evName2
 const emit = defineEmits<{
   (e: 'evName', arg: Event): void,
   (e: 'evName2', arg: string, arg2: string): void
 }>()
 
 const emitToParent = (ev: Event) => {
-  // 子组件触发自定义事件, 向父组件发射参数
+  // 子组件派发自定义事件, emit 发射参数给父组件
   emit('evName', ev)
 }
 const emitToParent2 = () => {
@@ -937,14 +937,14 @@ const emitToParent2 = () => {
 
 ```ts{3-6} [写法 3 (推荐)]
 // 子组件使用 defineEmits 定义自定义事件
-// 自定义事件名 evName, evName2 会被自动转换为 ev-name, ev-name2 (snake-case)
+// 自定义事件名 evName, evName2
 const emit = defineEmits<{
   evName: [arg: Event], // 具名元组
   evName2: [arg: string, arg2: string] // 具名元组
 }>()
 
 const emitToParent = (ev: Event) => {
-  // 子组件触发自定义事件, 向父组件发射参数
+  // 子组件派发自定义事件, emit 发射参数给父组件
   emit('evName', ev)
 }
 const emitToParent2 = () => {
@@ -960,15 +960,15 @@ const emitToParent2 = () => {
 <script lang="ts" setup>
 import ChildDemo from "./ChildDemo.vue";
 // 子传父
-// 自定义事件触发时, 父组件接收子组件发射的数据, 作为回调函数的参数
+// 自定义事件派发时, 父组件接收子组件发射的数据, 作为回调函数的参数
 const receiveFromChild = (...args: unknown[]) => console.log(args);
 </script>
 
 <template>
-  <!-- 父组件为子组件的自定义事件绑定回调函数 -->
+  <!-- 父组件为子组件的自定义事件绑定回调函数, 监听子组件派发的自定义事件 -->
   <ChildDemo
-    @ev-name="(...args: unknown[]) => receiveFromChild(args)"
-    @ev-name2="receiveFromChild"
+    @evName="(...args: unknown[]) => receiveFromChild(args)"
+    @evName2="receiveFromChild"
   />
 </template>
 ```
@@ -1724,6 +1724,9 @@ const ChildAsync = defineAsyncComponent(
 
 ## 使用 TSX
 
+- 支持 v-show、v-model
+- 特有的 v-slots
+
 ::: code-group
 
 ```tsx [ChildDemo 写法 1]
@@ -1736,7 +1739,11 @@ interface IProps {
 
 export default defineComponent({
   name: "ChildDemo", // componentName
-  props: ["name", "age"], // propNames (defineProps)
+  // props: ['name', 'age'], // propNames (defineProps)
+  props: {
+    name: String,
+    age: Number,
+  },
   emits: [] as string[], // eventNames (defineEmits)
   expose: [] as string[], // exposedKeys (defineExpose)
 
@@ -1765,23 +1772,16 @@ export default defineComponent({
 ```
 
 ```tsx [ParentDemo 写法 2]
-import { ref, defineComponent, type RenderFunction } from "vue";
+import { ref, defineComponent } from "vue";
 import ChildDemo from "./ChildDemo";
 
 export default defineComponent(
   // setup
-  (props: Record<string, unknown>, { attrs, slots, emit, expose }) => {
+  () => {
     const name = ref("whoami");
     const age = ref(23);
-    console.log("[ParentDemo] props:", props);
-    console.log(
-      "[ParentDemo] ctx:",
-      attrs,
-      slots,
-      emit.toString(),
-      expose.toString(),
-    );
-
+    const slots = { default: () => <>插槽写法 1</> };
+    const slots2 = { default: () => <>插槽写法 2</> };
     // return a renderFunc
     return () => (
       <>
@@ -1792,10 +1792,9 @@ export default defineComponent(
         </button>
         <button onClick={() => (age.value += 1)}>Parent setAge</button>
         <ChildDemo name={name} age={age}>
-          {{
-            default: () => <>插入到子组件的匿名插槽 default</>,
-          }}
+          {slots}
         </ChildDemo>
+        <ChildDemo name={name} age={age} v-slots={slots2} />
       </>
     );
   },
