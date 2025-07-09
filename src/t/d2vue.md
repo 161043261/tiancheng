@@ -858,7 +858,7 @@ onMounted(() => {
 
 :::
 
-## 全局变量, 全局函数
+## 全局变量 `app.config.globalProperties`
 
 ::: code-group
 
@@ -914,7 +914,7 @@ console.log(app?.proxy?.$encoding.jsonMarshal({ name: "whoami", age: 23 }));
 
 :::
 
-## 全局变量/函数 + Vue 插件综合案例
+## 全局变量 + Vue 插件综合案例
 
 - Vue 插件可以是一个有 install 方法的对象
 - 也可以直接是一个安装函数
@@ -994,44 +994,36 @@ app.mount("#app");
 
 :::
 
-## 手写 `app.use()` 源码
+## `app.use()` 源码
 
-::: code-group
+```ts
+import { createApp } from "vue";
+import { createPinia } from "pinia";
 
-```ts [myUse]
-import type { App } from "vue";
+import App from "./App.vue";
+import type { App as VueApp } from "vue";
 
 interface Plugin {
-  install?: (app: App, ...options: Array<any>) => any;
+  install: (app: VueApp, ...options: unknown[]) => unknown;
 }
 const installed = new Set();
 
-export function myUse<T extends Plugin>(plugin: T, ...options: Array<any>) {
+export function myUse<T extends Plugin>(plugin: T, ...options: Array<unknown>) {
   if (installed.has(plugin)) {
-    console.warn(plugin, "重复注册");
-  } else {
-    // @ts-ignore
-    plugin.install(this as App /** app */, ...options);
-    installed.add(plugin);
+    return;
   }
+  plugin.install(this as VueApp /** app */, ...options);
+  installed.add(plugin);
+  return;
 }
-```
 
-```ts [main.ts]
-import "@/assets/main.scss";
-
-import { createApp } from "vue";
-import App from "./App.vue";
-import { vuePlugin } from "@/utils";
-import { myUse } from "./utils/myUse";
 const app = createApp(App);
 
-// app.use(vuePlugin)
-myUse.bind(app)(vuePlugin);
-myUse.bind(app)(vuePlugin); // {install: ƒ} '重复注册'
-```
+// app.use(createPinia())
+myUse.call(app, createPinia());
 
-:::
+app.mount("#app");
+```
 
 ## nextTick
 
