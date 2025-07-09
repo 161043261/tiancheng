@@ -2,9 +2,9 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 hero:
-  name: '<div style="font-weight: normal">恋の終わりに</div>'
-  text: '<div style="font-weight: normal">東京タワーを見た</div>'
-  tagline: 夢とあなたを天秤にかけた答え
+  name: Tiancheng
+  text: Hang
+  tagline:
   image:
     src: /index.jpg
     alt: hero

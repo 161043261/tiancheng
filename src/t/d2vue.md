@@ -501,7 +501,7 @@ function vitePluginVueTsx(): Plugin {
 - 父组件修改值时, 父组件使用 `v-bind` 传递新的 `modelValue` 值给子组件
 - 子组件修改值时, 子组件派发 `update:modelValue` 预定义事件, emit 发射新的 `modelValue` 值给父组件
 - 支持多个 v-model: v-model 预定义的属性名是 `modelValue`, 事件名是 `update:modelValue`, 支持自定义 v-model 的属性名、事件名
-- v-model 修饰符: .trim, .number, .lazy, 支持自定义修饰符 v-model.customModifier
+- v-model 修饰符: `.trim`, `.number`, `.lazy`, 支持自定义修饰符 `v-model.customModifier`
 
 ::: code-group
 
@@ -805,7 +805,8 @@ import App from "./App.vue";
 import { createApp } from "vue";
 import type { App as VueApp } from "vue";
 
-// Vue 插件可以是一个有 install 方法的对象, 也可以直接是一个安装函数
+// Vue 插件可以是一个有 install 方法的对象
+// 也可以直接是一个安装函数
 // 也可以是一个有 install 属性的安装函数, install 属性值也是一个函数, 接收一个 App 实例
 // useResize 是一个自定义 hook, 也是一个 Vue 插件
 export const useResize = (
@@ -861,132 +862,134 @@ onMounted(() => {
 
 ::: code-group
 
-```ts [index.ts]
+```ts [main.ts]
 import { createApp } from "vue";
 import App from "./App.vue";
-const app = createApp(App);
+import mitt from "mitt";
 
-// 全局变量
-app.config.globalProperties.$env = "dev";
-app.config.globalProperties.$api = {
-  stringify<T>(arg: T) {
+interface IEncoding {
+  jsonMarshal<T extends object>(arg: T): string;
+}
+
+const app = createApp(App);
+// 类型扩展
+declare module "vue" {
+  export interface ComponentCustomProperties {
+    $env: string;
+    $encoding: IEncoding;
+    $bus: ReturnType<typeof mitt>;
+  }
+}
+
+// 全局变量 $bus, $env, $encoding
+const emitter = mitt();
+app.config.globalProperties.$bus = emitter;
+app.config.globalProperties.$env = "DEV";
+app.config.globalProperties.$encoding = {
+  jsonMarshal<T extends object>(arg: T) {
     return JSON.stringify(arg);
   },
 };
 
 app.mount("#app");
-
-type Api = {
-  stringify<T>(arg: T): string;
-};
-
-// 类型扩展
-declare module "vue" {
-  export interface ComponentCustomProperties {
-    $env: string;
-    $api: Api;
-  }
-}
 ```
 
-```vue
+```vue [App.vue]
+<template>
+  <div>$env: {{ $env }}</div>
+  <div>
+    $encoding.jsonMarshal:
+    {{ $encoding.jsonMarshal({ name: "whoami", age: 23 }) }}
+  </div>
+</template>
+
 <script lang="ts" setup>
 import { getCurrentInstance } from "vue";
 
 const app = getCurrentInstance();
-console.log("$env:", app?.proxy?.$env);
-console.log("$api.stringify:", app?.proxy?.$api.stringify({ a: 1, b: 2 }));
+console.log(app?.proxy?.$env);
+console.log(app?.proxy?.$encoding.jsonMarshal({ name: "whoami", age: 23 }));
 </script>
-
-<template>
-  <div>
-    <div>$env: {{ $env }}</div>
-    <div>$api.stringify: {{ $api.stringify({ a: 1, b: 2 }) }}</div>
-  </div>
-</template>
 ```
 
 :::
 
 ## 全局变量/函数 + Vue 插件综合案例
 
-- Vue 插件: 一个有 install 属性的对象
-- install 属性值: 接收一个 App 实例的函数
+- Vue 插件可以是一个有 install 方法的对象
+- 也可以直接是一个安装函数
 
 ::: code-group
 
-```vue [MessageBox 消息弹出框]
+```vue [ToastDemo.vue]
 <script setup lang="ts">
-const isAlive = ref<boolean>(true);
-
-function changeAlive() {
-  isAlive.value = !isAlive.value;
-}
+import { ref } from "vue";
+const visible = ref<boolean>(true);
 
 defineExpose({
-  isAlive,
-  changeAlive,
+  visible,
+  show: () => (visible.value = true),
+  hide: () => (visible.value = false),
 });
 </script>
 
 <template>
-  <main>
-    <Transition
-      enter-active-class="animate__animated animate__bounceIn"
-      leave-active-class="animate__animated animate__bounceOut"
-    >
-      <div v-if="isAlive" class="loading">Say Goodbye</div>
-    </Transition>
-  </main>
+  <Transition
+    enter-active-class="animate__animated animate__bounceIn"
+    leave-active-class="animate__animated animate__bounceOut"
+  >
+    <div v-if="visible" class="w-50 h-50 bg-lime-100" />
+  </Transition>
 </template>
 ```
 
-```ts [@/utils/index.ts]
-import { createVNode, render } from "vue";
-import type { App, Plugin, Ref, VNode } from "vue";
+```ts [main.ts]
+import "animate.css";
 
-const vuePlugin: Plugin = {
-  install(app: App) {
-    const vnode: VNode = createVNode(VuePluginDemo);
-    render(vnode, document.body /** container */);
-    app.config.globalProperties.$vuePluginDemo = {
-      isAlive: vnode.component?.exposed?.isAlive,
-      changeAlive: vnode.component?.exposed?.changeAlive,
-    };
-  },
-};
-// 类型扩展
+import { createApp, createVNode, render } from "vue";
+import App from "./App.vue";
+import type { Ref, VNode, App as VueApp } from "vue";
+import ToastDemo from "./components/ToastDemo.vue";
+
 declare module "vue" {
   export interface ComponentCustomProperties {
-    $vuePluginDemo: {
-      isAlive: Ref<boolean>;
-      changeAlive: () => void;
+    $toast: {
+      show: () => void;
+      hide: () => void;
+      visible: Ref<boolean>;
     };
   }
 }
-```
 
-```ts [main.ts 注册插件]
-import { vuePlugin } from "@/utils";
-app.use(vuePlugin);
-```
-
-```tsx [使用插件]
-import { defineComponent, getCurrentInstance } from "vue";
-
-export default defineComponent({
-  setup() {
-    const app = getCurrentInstance();
-    return () => (
-      <>
-        <div>isAlive: {`${app?.proxy?.$vuePluginDemo.isAlive.value}`}</div>
-        <button onClick={() => app?.proxy?.$vuePluginDemo.changeAlive()}>
-          changeAlive
-        </button>
-      </>
-    );
+// Vue 插件可以是一个有 install 方法的对象
+// 也可以直接是一个安装函数
+export const vuePluginToast = {
+  install(app: VueApp) {
+    const vnode: VNode = createVNode(ToastDemo);
+    render(vnode, document.body);
+    app.config.globalProperties.$toast = {
+      show: vnode.component?.exposed?.show,
+      hide: vnode.component?.exposed?.hide,
+      visible: vnode.component?.exposed?.visible,
+    };
   },
-});
+};
+
+const app = createApp(App);
+app.use(vuePluginToast);
+
+app.mount("#app");
+```
+
+```vue [App.vue]
+<template>
+  <div class="flex flex-col gap-5">
+    <button @click="$toast.show">show</button>
+    <button @click="$toast.hide">hide</button>
+    <button @click="$toast.visible.value = true">show2</button>
+    <button @click="$toast.visible.value = false">hide2</button>
+  </div>
+</template>
 ```
 
 :::
