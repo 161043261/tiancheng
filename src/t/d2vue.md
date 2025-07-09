@@ -158,7 +158,7 @@ const flag = ref<boolean>(true);
 
 :::
 
-### `<Transition />` 的 JS 钩子
+### `<Transition />` 的钩子函数
 
 | 事件名         | 对应的 CSS 类名 |
 | -------------- | --------------- |
@@ -551,253 +551,307 @@ const handleInput = (ev: Event) => {
 
 ## 自定义指令
 
-| 组件生命周期的钩子函数 | 指令生命周期的钩子函数 |
-| ---------------------- | ---------------------- |
-| setup                  | created                |
-| onBeforeMount          | beforeMount            |
-| onMounted              | mounted                |
-| onBeforeUpdate         | beforeUpdate           |
-| onUpdated              | updated                |
-| onBeforeUnmount        | beforeUnmount          |
-| onUnmounted            | unmounted              |
-
 自定义指令名: 以 v 开头, vDirectiveName
+
+自定义指令的钩子函数
+
+- created
+- beforeMount
+- mounted
+- beforeUpdate
+- updated
+- beforeUnmount
+- unmounted
 
 ```vue
 <script setup lang="ts">
 import { ref, type Directive, type DirectiveBinding } from "vue";
-import CustomDirectiveChild from "./CustomDirectiveChild.vue";
+import ChildDemo from "./ChildDemo.vue";
 
-const vMyDirective: Directive = {
+// 自定义指令名: 以 v 开头, vDirectiveName
+const vCustomDirective: Directive = {
   created(...args) {
-    console.log("created:", args);
+    console.log("[vCustomDirective] created:", args);
   },
+
   beforeMount(...args) {
-    console.log("beforeMount:", args);
+    console.log("[vCustomDirective] beforeMount:", args);
   },
+
   mounted(
     el: HTMLElement,
     binding: DirectiveBinding<{ background: string; textContent: string }>,
   ) {
-    console.log("mounted:", el, binding);
+    console.log("[vCustomDirective] mounted:", el, binding);
     el.style.background = binding.value.background;
     el.textContent = binding.value.textContent;
   },
+
   beforeUpdate(...args) {
-    console.log("beforeUpdated:", args);
+    console.log("[vCustomDirective] beforeUpdate:", args);
   },
+
   updated(...args) {
     const el = args[0];
     el.textContent = textContent.value;
-    console.log("updated:", args);
+    console.log("[vCustomDirective] updated:", args);
   },
+
   beforeUnmount(...args) {
-    console.log("beforeUnmount", args);
+    console.log("[vCustomDirective] beforeUnmount", args);
   },
+
   unmounted(...args) {
-    console.log("unmounted", args);
+    console.log("[vCustomDirective] unmounted", args);
   },
 };
 
 const isAlive = ref(true);
-const textContent = ref("苏式绿豆汤");
-function updateChild() {
-  textContent.value += " yue!";
-}
+const textContent = ref("Vue");
+const handleUpdate = () => {
+  textContent.value += "!";
+};
 </script>
 
 <template>
-  <main>
-    <button @click="isAlive = !isAlive">挂载/卸载</button>
-    <button @click="updateChild">更新</button>
-    <CustomDirectiveChild
-      v-if="isAlive"
-      v-my-directive:propName.myModifier="{
-        background: 'lightpink',
-        textContent: textContent,
-      }"
-    ></CustomDirectiveChild>
-  </main>
+  <button @click="isAlive = !isAlive">挂载/卸载</button>
+  <button @click="handleUpdate">更新</button>
+  <ChildDemo
+    v-if="isAlive"
+    v-custom-directive:propName.myModifier="{
+      background: 'skyblue',
+      textContent,
+    }"
+  />
 </template>
 ```
 
-### 自定义指令实现按钮鉴权
+### 自定义指令 `v-auth` 实现按钮鉴权
 
 ```vue
 <script setup lang="ts">
 import type { Directive, DirectiveBinding } from "vue";
-localStorage.setItem("userId", "161043261");
-// mock 后端返回的数据
-const permissions = [
-  "161043261:item:create",
-  "161043261:item:update" /** , '161043261:item:delete' */,
-];
-const userId = localStorage.getItem("userId") as string;
 
-const vIsShow: Directive<HTMLElement, string> = (
-  el: HTMLElement,
-  binding: DirectiveBinding<string>,
-) => {
-  // console.log(el, binding)
-  if (!permissions.includes(userId + ":" + binding.value)) {
-    el.style.display = "none"; // 如果没有权限, 则隐藏对应的按钮
+const userId = "whoami";
+// mock 后端返回的数据
+const authList = [
+  "whoami:item:create",
+  "whoami:item:update" /** 'whoami:item:delete' */,
+];
+
+const vAuth: Directive<HTMLElement, string> = (el, binding) => {
+  if (!authList.includes(userId + ":" + binding.value)) {
+    el.style.display = "none"; // 如果没有权限, 则隐藏按钮
   }
 };
 </script>
 
 <template>
-  <main>
-    <div>
-      <button v-is-show="'item:create'">创建</button>
-      <button v-is-show="'item:update'">更新</button>
-      <button v-is-show="'item:delete'">删除</button>
-    </div>
-  </main>
+  <button v-auth="'item:create'">创建</button>
+  <button v-auth="'item:update'">更新</button>
+  <button v-auth="'item:delete'">删除</button>
 </template>
 ```
 
-## 自定义 hook (一个异步函数)
+### 自定义指令 `v-drag` 实现可拖拽窗口
 
-::: code-group
+```vue
+<script lang="ts" setup>
+import type { Directive } from "vue";
 
-```vue [父组件]
-<script setup lang="ts">
-import CustomHookChild from "./CustomHookChild.tsx";
-import { useCustomHook } from "./CustomHookChild.tsx";
+const vDrag: Directive<HTMLElement> = (el) => {
+  const draggableElem = el.firstElementChild as HTMLElement;
+  const handleMouseDown = (downEv: MouseEvent) => {
+    const dx = downEv.clientX - el.offsetLeft;
+    const dy = downEv.clientY - el.offsetTop;
 
-useCustomHook({ el: "#img" }).then((val) =>
-  console.log("baseUrl:", val.baseUrl),
-);
+    const handleMouseMove = (moveEv: MouseEvent) => {
+      el.style.left = `${moveEv.clientX - dx}px`;
+      el.style.top = `${moveEv.clientY - dy}px`;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", () =>
+      document.removeEventListener("mousemove", handleMouseMove),
+    );
+  };
+
+  draggableElem.addEventListener("mousedown", handleMouseDown);
+};
 </script>
 
 <template>
-  <main>
-    <img id="img" width="300" height="300" src="@/assets/logo.svg" />
-    <CustomHookChild a="aa" b="bb" c="cc"></CustomHookChild>
-  </main>
+  <!-- fixed 固定定位 -->
+  <div v-drag class="fixed">
+    <div class="h-20 w-50 bg-lime-100 cursor-pointer" />
+    <div class="h-50 w-50 bg-lime-200" />
+  </div>
 </template>
 ```
 
-```tsx [子组件]
-import { defineComponent, useAttrs, onMounted } from "vue";
+### 自定义指令 `v-lazy` 实现图片懒加载
 
-export /** async */ function useCustomHook(options: {
-  el: string;
-}): Promise<{ baseUrl: string }> {
-  return new Promise((resolve /** , reject */) => {
-    onMounted(() => {
-      const img = document.querySelector(options.el) as HTMLImageElement;
-      // console.log(img)
-      img.onload = () => {
-        resolve({
-          baseUrl: toBase64(img),
-        });
-      };
-    });
+```vue
+<script lang="ts" setup>
+import { type Directive } from "vue";
 
-    const toBase64 = (el: HTMLImageElement) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = el.width;
-      canvas.height = el.height;
-      ctx?.drawImage(el, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL("image/svg");
-    };
-  });
-}
-
-export default defineComponent({
-  props: ["c"],
-  setup(props: { c: string }) {
-    const attrs = useAttrs();
-    console.log("attrs:", attrs);
-    console.log("props:", props);
-    return () => (
-      <>
-        <main>CustomHookChild</main>
-      </>
-    );
-  },
+// glob 默认懒加载
+const images = import.meta.glob(["@/assets/*.jpg", "@/assets/*.png"], {
+  eager: true, // 指定立即加载
 });
+const arr = Object.values(images).map((item) => (item as any).default);
+// arr.length = 1
+const flattedArr = arr.flatMap((item) => new Array(10).fill(item));
+// flattedArr.length = 10
+const vLazy: Directive<HTMLImageElement, string> = async (el, binding) => {
+  const placeholder = await import("@/assets/vue.svg");
+  el.src = placeholder.default;
+
+  // 监听目标元素与祖先元素或视口 viewport 的相交情况
+  // 监听目标元素和视口 viewport 的相交情况, 即监听一个元素是否可见
+  // entries[0].intersectionRatio 相交的比例、一个元素可见的比例
+  const intersectionObserver = new IntersectionObserver((entries) => {
+    const visibleRatio = entries[0].intersectionRatio;
+    if (visibleRatio > 0) {
+      setTimeout(() => (el.src = binding.value), 1500);
+      intersectionObserver.unobserve(el);
+    }
+  });
+  intersectionObserver.observe(el);
+};
+</script>
+
+<template>
+  <div>
+    <img
+      v-lazy="item"
+      width="1000"
+      v-for="(item, idx) of flattedArr"
+      :key="idx"
+    />
+  </div>
+</template>
 ```
 
-:::
+## 自定义 hook
 
-## 自定义指令 + 自定义 hook 综合案例
+### Demo
 
-- InterSectionObserver 监听目标元素与祖先元素或视口相交情况的变化
+```vue
+<script lang="ts" setup>
+import { onMounted, ref, type Ref } from "vue";
+
+const useBase64str = (
+  el: Ref<HTMLImageElement | null>,
+): Promise<{ base64str: string }> => {
+  const toBase64str = (img: HTMLImageElement) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    [canvas.width, canvas.height] = [img.width, img.height];
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const avg =
+          (data[i] + // r
+            data[i + 1] + // g
+            data[i + 2]) / // b
+          3;
+        data[i] = data[i + 1] = data[i + 2] = avg;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+    const base64str = canvas.toDataURL(`image/${getExtName(img.src)}`);
+    return base64str;
+  };
+
+  const getExtName = (url: string) => {
+    const urlObj = new URL(url);
+    return urlObj.pathname.split(".").at(-1);
+  };
+
+  return new Promise((resolve) => {
+    onMounted(() => {
+      el.value!.onload = () => {
+        const base64str = toBase64str(el.value!);
+        resolve({ base64str });
+      };
+    });
+  });
+};
+
+const imgRef = ref<HTMLImageElement | null>(null);
+useBase64str(imgRef).then((res) => {
+  imgRef.value!.src = res.base64str;
+});
+</script>
+
+<template>
+  <img src="@/assets/bg.jpg" id="bg" ref="imgRef" />
+</template>
+```
+
+### 自定义指令 + 自定义 hook 综合案例
+
+- InterSectionObserver 监听目标元素与祖先元素或视口 viewport 的相交情况
 - MutationObserver 监听整个 DOM 树的变化
 - ResizeObserver 监听元素宽高的变化
 
 ::: code-group
 
-```ts [@/utils/index.ts]
-import { type App } from "vue";
-function useResize(
+```ts{23,24} [main.ts]
+import App from "./App.vue";
+import { createApp } from "vue";
+import type { App as VueApp } from "vue";
+
+// Vue 插件可以是一个有 install 方法的对象, 也可以直接是一个安装函数
+// 也可以是一个有 install 属性的安装函数, install 属性值也是一个函数, 接收一个 App 实例
+// useResize 是一个自定义 hook, 也是一个 Vue 插件
+export const useResize = (
   el: HTMLElement,
-  callback: (contentRect: DOMRectReadOnly) => void,
-) {
+  cb: (contentRect: DOMRectReadOnly) => void,
+) => {
   const resizeObserver = new ResizeObserver((entries) => {
-    callback(entries[0].contentRect);
+    cb(entries[0].contentRect);
   });
   resizeObserver.observe(el);
-}
-
-// Vue 插件: 一个有 install 属性的对象
-// install 属性值: 接收一个 App 实例的函数
-const install = (app: App) => {
-  app.directive("resize", {
-    mounted(el, binding) {
-      console.log(binding.value);
-      useResize(el, binding.value /** callback */);
-    },
-  });
 };
 
-useResize.install = install;
-export default useResize;
-```
+useResize.install = (app: VueApp) => {
+  // 注册 v-resize 自定义指令
+  app.directive('resize', {
+    mounted(el, binding) {
+      console.log('[v-resize] mounted:', el, binding)
+      // binding.value
+      // (rect) => console.log("[v-resize] contentRect:", rect)
+      useResize(el, binding.value /** cb */)
+    },
+  })
+}
 
-```ts [index.ts]
-import { createApp } from "vue";
-import router from "@/router";
-
-import App from "./App.vue";
-import useResize from "@/utils";
 const app = createApp(App);
-
-app.use(router);
 app.use(useResize);
-
 app.mount("#app");
 ```
 
-```vue [自定义 hook]
-<script setup lang="ts">
-import useResize from "@/utils";
-import { onMounted } from "vue";
+```vue{15} [App.vue]
+<script lang="ts" setup>
+import { useResize } from '@/main'
+import { onMounted } from 'vue'
+
 onMounted(() => {
-  useResize(document.querySelector("#resize") as HTMLElement, (contentRect) =>
-    console.log(contentRect),
-  );
-});
+  useResize(document.querySelector('#parent') as HTMLElement, (rect) =>
+    console.log('[useResize] contentRect:', rect),
+  )
+})
 </script>
 
 <template>
-  <main>
-    <div id="resize"></div>
-  </main>
-</template>
-```
-
-```vue [自定义指令]
-<template>
-  <main>
-    <div
-      v-resize="(rect: DOMRectReadOnly) => console.log(rect) /** callback */"
-      id="resize"
-    ></div>
-  </main>
+  <textarea
+    id="parent"
+    v-resize="(rect: DOMRectReadOnly) => console.log('[v-resize] contentRect:', rect)"
+  />
 </template>
 ```
 
