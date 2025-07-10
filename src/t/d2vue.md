@@ -349,7 +349,7 @@ const list = reactive<number[]>([0, 1, 2]);
 <template>
   <button @click="list.push(list.length)">push</button>
   <button @click="list.pop()">pop</button>
-  <!-- tag="htmlTagName" tag 属性为多个列表项包裹一层 htmlTagName 标签 -->
+  <!-- tag="htmlTagName" tag 属性为多个列表项包裹一层 htmlTagName 元素 -->
   <div class="wrapper">
     <TransitionGroup
       tag="main"
@@ -1457,178 +1457,70 @@ export default defineConfig({
 });
 ```
 
-## Vue 函数式编程
-
-h 函数原理是 `createVNode`, 优点是跳过了模板的编译 (`<template>` ==parser=> AST ==transformer=> JS API ==generator=> render 渲染函数)
-
-```vue
-<script setup lang="ts">
-import { h, reactive } from "vue";
-
-const list = reactive([
-  { id: 1, name: "item1", age: 11 },
-  { id: 2, name: "item2", age: 22 },
-  { id: 3, name: "item3", age: 33 },
-]);
-
-interface IProps {
-  type: "success" | "error";
-}
-
-// Vue 函数式编程
-const OperateButton = (props: IProps, ctx: any /** { emit, slots } */) => {
-  return h(
-    /* HyperScript */ "button", // type
-    {
-      style: { color: props.type === "success" ? "green" : "red" },
-      onClick: () => {
-        console.log(ctx);
-      },
-    }, // props
-    ctx.slots.default(), // children
-  );
-};
-</script>
-
-<template>
-  <main>
-    <table>
-      <thead>
-        <tr>
-          <th>name</th>
-          <th>age</th>
-          <th>operate</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item of list" :key="item.id">
-          <td>{{ item.name }}</td>
-          <td>{{ item.age }}</td>
-          <td>
-            <OperateButton type="success">修改</OperateButton>
-            <OperateButton type="error">删除</OperateButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </main>
-</template>
-```
-
 ## Vue 编译宏
 
-### defineProps, defineEmits
-
-::: code-group
-
-```vue [父组件]
-<script setup lang="ts">
-import VueMacroChild from "./VueMacroChild.vue";
-</script>
-
-<template>
-  <main>
-    <VueMacroChild
-      :name="['whoami']"
-      @my-groupies="(...args) => console.log(args)"
-    ></VueMacroChild>
-  </main>
-</template>
-```
-
-```vue [子组件]
-<!-- <script setup lang="ts">
-// import type { PropType } from 'vue'
-// const props = defineProps({
-//   name: { type: Array as PropType<string[]>, required: true },
-// })
-const props = defineProps<{
-  name: string[]
-}>()
-</script> -->
-
-<!-- 泛型支持 -->
-<script generic="T /** extends object */" lang="ts" setup>
-const props = defineProps<{
-  name: T[];
-}>();
-console.log(props.name);
-// const emit = defineEmits(['eventName'])
-const emit = defineEmits<{
-  // <eventName>: <expected arguments>
-  // (eventName: string, arg: number, arg2: string): void;
-  myGroupies: [arg: number, arg2: string]; // 命名元组语法
-}>();
-</script>
-
-<template>
-  <main>
-    <button @click="emit('myGroupies', 1, 'arg')"></button>
-  </main>
-</template>
-```
-
-:::
-
-### defineOptions
-
-```ts
-defineOptions({
-  // 属性和 Options API 相同: data, methods, render, ...
-  // 不能定义 props 和 emits, 使用 defineProps, defineEmits
-  name: "VueMacroChild",
-});
-```
+- defineProps
+- defineEmits
+- defineOptions
+- defineSlots
 
 ### defineSlots
 
 ::: code-group
 
-```vue [父组件]
+```vue [ParentDemo]
 <script setup lang="ts">
-import DefineSlotChild from "./DefineSlotChild.vue";
+import ChildDemo from "./ChildDemo.vue";
 const list = [
-  {
-    name: "item1",
-    age: 1,
-  },
-  {
-    name: "item2",
-    age: 2,
-  },
+  { name: "love", age: 1 },
+  { name: "you", age: 2 },
 ];
 </script>
 
 <template>
   <main>
-    <DefineSlotChild :list="list">
+    <ChildDemo :defaultList="list" :namedList="list">
       <!-- item 先通过子组件的 props 父传子,
-      再通过子组件的 slot 子传父, v-slot 等价于 # -->
-      <template #default="{ item, idx }">
-        <div>{{ `idx: ${idx}, name: ${item.name}, age: ${item.age}` }}</div>
+      再通过子组件的 slot 子传父 -->
+      <template #default="{ item }">
+        <div>defaultSlot {{ `name: ${item.name}, age: ${item.age}` }}</div>
       </template>
-    </DefineSlotChild>
+
+      <template #named="{ item }">
+        <div>namedSlot {{ `name: ${item.name}, age: ${item.age}` }}</div>
+      </template>
+    </ChildDemo>
   </main>
 </template>
 ```
 
-```vue [子组件]
+```vue [ChildDemo]
 <!-- 泛型支持 -->
 <script generic="T extends object" setup lang="ts">
-import { toRef } from "vue";
-const props = defineProps<{ list: T[] }>();
-const list = toRef(props, "list");
+import { toRefs, type RenderFunction } from "vue";
+
+const props = defineProps<{ defaultList: T[]; namedList: T[] }>();
+const { defaultList, namedList } = toRefs(props);
+
 defineSlots<{
-  default(props: { item: T; idx: number }): void;
+  default(props: { item: T }): unknown;
+  named(props: { item: T }): unknown;
 }>();
 </script>
 
 <template>
   <main>
     <ul>
-      <li v-for="(item, idx) of list" :key="idx">
-        <!-- 匿名插槽 -->
-        <slot :item="item" :idx="idx"></slot>
+      <li v-for="(item, idx) of defaultList" :key="idx">
+        <!-- 匿名的作用域插槽 -->
+        <slot :item="item" />
+      </li>
+    </ul>
+
+    <ul>
+      <li v-for="(item, idx) of namedList" :key="idx">
+        <!-- 具名的作用域插槽 -->
+        <slot :item="item" name="named" />
       </li>
     </ul>
   </main>
@@ -1639,32 +1531,29 @@ defineSlots<{
 
 ## 环境变量
 
-在项目根目录下创建 `.env.development`, `.env.production`, 修改 `package.json`
+在项目根目录下创建环境变量文件 `.env.development`, `.env.production`, 修改 `package.json`
 
 ::: code-group
 
 ```bash [.env.development]
-VITE_HTTP = 'http://121.41.121.204:8080'
+VITE_CUSTOM_ENV = '[custom_env] development'
 ```
 
 ```bash [.env.production]
-VITE_HTTP = 'http://121.41.121.204:80'
+VITE_CUSTOM_ENV = '[custom_env] production'
 ```
 
 ```json [package.json]
 {
   "scripts": {
-    "dev": "vite --mode development"
+    "dev": "vite --mode development",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview"
   }
 }
 ```
 
-:::
-
-使用 `import.meta.env` 读取项目根目录下的 `.env.development`, `.env.production`
-
-```ts
-//! pnpm dev
+```ts [pnpm dev]
 console.log("import.meta.env:", import.meta.env);
 // {
 //   BASE_URL: '/',
@@ -1672,120 +1561,79 @@ console.log("import.meta.env:", import.meta.env);
 //   MODE: 'development',
 //   PROD: false,
 //   SSR: false
-//   VITE_HTTP: 'http://121.41.121.204:8080'
+//   VITE_CUSTOM_ENV: '[custom_env] development'
 // }
 ```
 
-`vite.config.ts` 是 Node.js 环境, 无法使用 `import.meta.env` 读取项目根目录下的 `.env.development`, `.env.production`
+```ts [pnpm build && pnpm preview]
+console.log("import.meta.env:", import.meta.env);
+// {
+//   BASE_URL: '/',
+//   DEV: false,
+//   MODE: 'production',
+//   PROD: true,
+//   SSR: false
+//   VITE_CUSTOM_ENV: '[custom_env] production'
+// }
+```
 
-```ts{7}
+:::
+
+`vite.config.ts` 是 node 环境, 无法使用 `import.meta.env` 读取项目根目录下的环境变量文件
+
+```ts
 import { defineConfig, loadEnv } from "vite";
-// export default defineConfig({/** ... */});
+import vue from "@vitejs/plugin-vue";
 
-// console.log(process.env)
+// https://vite.dev/config/
 export default ({ mode }: { mode: string }) => {
-  console.log("mode:", mode); // mode: development
-  console.log(loadEnv(mode, process.cwd())); // { VITE_HTTP: 'http://121.41.121.204:8080' }
-  return defineConfig({
-    /** ... */
-  });
+  // mode: development
+  console.log("mode:", mode);
+  // loadEnv: { VITE_CUSTOM_ENV: '[custom_env] development' }
+  console.log("loadEnv:", loadEnv(mode, process.cwd()));
+  return defineConfig({ plugins: [vue()] });
 };
 ```
 
-## 使用 [Webpack](https://webpack.docschina.org/concepts/) 构建 Vue3 项目
-
-见 [vue-webpack](https://github.com/161043261/type/tree/main/awesome/vue-webpack)
-
 ## Vue3 性能优化
 
-检查 -> Lighthouse -> 分析网页加载情况
+### Lighthouse
 
-- FCP, First Contentful Paint 首次内容绘制时间: 从页面开始加载到浏览器首次渲染出内容的时间 (用户首次看到内容的时间, 内容: 首个文本或首张图片)
-- SI, Speed Index 速度指数: 页面的各个可视区域的平均绘制时间, 页面等待后端发送的数据时, 会影响到 Speed Index
-- LCP, Largest Contentful Paint 最大 DOM 元素的绘制时间
-- TTI, Time to Interactive 首次可交互时间: 从页面开始加载到用户与页面可以交互的时间, 此时页面渲染已完成, 交互元素绑定的事件已注册
-- TBT, Total Blocking Time 总阻塞时间: 从页面开始加载到首次可交互时间 (TTI) 期间, 主线程被阻塞, 无法与用户交互的总时间
-- CLS, Cumulative Layout Shift 累积布局偏移: 比较两次渲染的布局偏移情况
+- 首次内容绘制 FCP, First Contentful Paint: 从页面开始加载到浏览器首次渲染出内容的时间 (用户首次看到内容的时间, 内容可以是首段文本或首张图片)
+- 最大内容绘制 LCP, Largest Contentful Paint 视口内最大的内容元素完成渲染的时间
+- 速度指数 SI, Speed Index: 页面的各个可视区域的平均渲染时间, 页面等待后端响应数据时, 会影响到 Speed Index
+- 首次可交互时间 TTI, Time to Interactive: 从页面开始加载到用户可以与页面交互的时间, 此时页面渲染已完成, 交互元素绑定的事件已注册
+- 总阻塞时间 TBT, Total Blocking Time: 从页面开始加载到首次可交互时间 (TTI) 期间, 主线程被阻塞的总时间
+- 累积布局偏移 CLS, Cumulative Layout Shift: 比较两次渲染的布局偏移情况, 数值越小越好
 
-### 分析 Vite 项目打包后的代码体积
-
-```bash
-# 适用于 vite 项目, vite 基于 rollup
-pnpm install rollup-plugin-visualizer -D
-# 适用于 webpack 项目
-pnpm install webpack-bundle-analyzer -D
-```
-
-`vite.config.ts` 中使用 `rollup-plugin-visualizer` 插件
+### 分析打包产物
 
 ```ts
+// pnpm install rollup-plugin-visualizer -D
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 import { visualizer } from "rollup-plugin-visualizer";
 
+// https://vite.dev/config/
 export default defineConfig({
-  plugins: [visualizer({ open: true })],
+  plugins: [vue(), visualizer({ open: true })],
   build: {
-    // 代码块 (chunk) 大小 >2000 KiB 时警告
+    // 代码块 (chunk) 大小 > 2000KB 时警告
     chunkSizeWarningLimit: 2000,
     cssCodeSplit: true, // 开启 CSS 拆分
-    sourcemap: false, // 不生成源代码映射文件 sourcemap
-    minify: "esbuild", // 最小化混淆, esbuild 打包速度最快, terser 打包体积最小
+    sourcemap: false, // 不生成源代码映射文件 source-map
+    minify: "esbuild", // JS 最小化混淆
     cssMinify: "esbuild", // CSS 最小化混淆
-    assetsInlineLimit: 5000, // 静态资源大小 <5000 Bytes 时, 将打包为 base64
+    assetsInlineLimit: 5000, // 静态资源大小 < 5000B 时, 将内联为 base64
   },
 });
 ```
 
-### PWA 渐进式 Web 应用程序, 离线缓存技术
+## 自定义元素
 
-1. 可以添加到桌面, 基于 manifest 实现
-2. 可以离线缓存, 基于 service worker 实现
-3. 可以发送应用程序通知, 基于 service worker 实现
+### 原生 Web Component 自定义元素
 
-```bash
-pnpm install vite-plugin-pwa
-pnpm install -g http-server
-pnpm build
-cd dist && http-server -p 5173
-```
-
-vite.config.ts
-
-```ts
-import { VitePWA } from "vite-plugin-pwa";
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    VitePWA({
-      // dist/manifest.webmanifest, dist/sw.js
-      workbox: {
-        cacheId: "d2vue", // 缓存名
-        runtimeCaching: [
-          {
-            urlPattern: /.*\.js.*/, // 缓存文件
-            handler: "StaleWhileRevalidate", // 重新验证时失效
-            options: {
-              cacheName: "d2vue-js",
-              expiration: {
-                maxEntries: 30, // 最大缓存文件数量, LRU 算法
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 缓存有效期
-              },
-            },
-          },
-        ],
-      },
-    }),
-  ],
-});
-```
-
-- 虚拟滚动列表, 参考 element-plus [Virtualized Table 虚拟化表格](https://element-plus.org/zh-CN/component/table-v2.html)
-- WebWorker 多线程: vue-use `useWebWorker`
-- 防抖, 节流: vue-use `useDebounceFn, useThrottleFn`
-
-## Web Component 自定义元素
-
-### 原生自定义元素
+优点: CSS, JS 隔离
 
 ::: code-group
 
@@ -1793,26 +1641,38 @@ export default defineConfig({
 class Btn extends HTMLElement {
   constructor() {
     super();
-    // shallow DOM: 样式隔离
-    const shallowDom = this.attachShadow({ mode: "open" });
-    this.p = this.h("p");
-    this.p.innerText = "d2vue Btn";
-    this.p.setAttribute(
+    const shadowDOM = this.attachShadow({ mode: "open" });
+    this.div = this.h("div");
+    this.div.innerText = "d2vue-btn";
+    this.div.setAttribute(
       "style",
       `width: 100px;
        height: 30px;
        line-height: 30px;
        text-align: center;
        border: 1px solid #ccc;
-       border-radius: 5px;
+       border-radius: 15px;
        cursor: pointer;
        `,
     );
-    shallowDom.appendChild(this.p);
+    shadowDOM.appendChild(this.div);
   }
 
-  h /**HyperScript */(el) {
+  h(el) {
     return document.createElement(el);
+  }
+
+  connectedCallback() {
+    console.log("[d2vue-btn] Connected");
+  }
+  disconnectedCallback() {
+    console.log("[d2vue-btn] Disconnect");
+  }
+  adoptedCallback() {
+    console.log("[d2vue-btn] Adopted");
+  }
+  attributeChangedCallback() {
+    console.log("[d2vue-btn] Attribute changed");
   }
 }
 
@@ -1823,39 +1683,38 @@ window.customElements.define("d2vue-btn", Btn);
 class Btn2 extends HTMLElement {
   constructor() {
     super();
-    // shallow DOM: 样式隔离
-    const shallowDom = this.attachShadow({ mode: "open" });
+    const shadowDOM = this.attachShadow({ mode: "open" });
     this.template = this.h("template");
     this.template.innerHTML = `
       <style>
-      p {
-        width: 100px;
-        height: 30px;
-        line-height: 30px;
-        text-align: center;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        cursor: pointer;
-      }
+        .btn {
+          width: 100px;
+          height: 30px;
+          line-height: 30px;
+          text-align: center;
+          border: 1px solid #ccc;
+          border-radius: 15px;
+          cursor: pointer;
+        }
       </style>
-      <p>d2vue Btn2</p>`;
-    shallowDom.appendChild(this.template.content.cloneNode(true));
+      <div class="btn">d2vue-btn2</div>`;
+    shadowDOM.appendChild(this.template.content.cloneNode(true));
   }
 
-  h /**HyperScript */(el) {
+  h(el) {
     return document.createElement(el);
   }
   connectedCallback() {
-    console.log("Connected");
+    console.log("[d2vue-btn2] Connected");
   }
   disconnectedCallback() {
-    console.log("Disconnect");
+    console.log("[d2vue-btn2] Disconnect");
   }
   adoptedCallback() {
-    console.log("Adopted");
+    console.log("[d2vue-btn2] Adopted");
   }
   attributeChangedCallback() {
-    console.log("Attribute changed");
+    console.log("[d2vue-btn2] Attribute changed");
   }
 }
 
@@ -1868,25 +1727,26 @@ window.customElements.define("d2vue-btn2", Btn2);
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Native Custom Element</title>
+    <title>Document</title>
     <script src="./btn.js"></script>
     <script src="./btn2.js"></script>
   </head>
   <body>
     <d2vue-btn></d2vue-btn>
-    <d2vue-btn2 />
+    <d2vue-btn2></d2vue-btn2>
   </body>
 </html>
 ```
 
 :::
 
-### Vue 自定义元素
+### Vue 中使用 Web Component 自定义元素
 
-vite.config.ts
+::: code-group
 
-```ts
-import { defineConfig /** , loadEnv */ } from "vite";
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -1894,7 +1754,7 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          // 文件名后缀为 .ce.vue 的文件, 前缀为 d2vue-, 将被视为自定义元素
+          // 文件名带 - 的, 文件拓展名 .ce.vue 的单文件组件, 视为 Web Component 自定义元素
           isCustomElement: (tag) => tag.startsWith("d2vue-"),
         },
       },
@@ -1903,46 +1763,42 @@ export default defineConfig({
 });
 ```
 
-::: code-group
-
 ```vue [d2vue-btn.ce.vue]
 <script setup lang="ts">
 defineProps<{ item: { name: string; age: number } }>();
 </script>
 
 <template>
-  <p>name: {{ item.name }}, age: {{ item.age }}</p>
+  <!-- 不能使用 tailwindcss -->
+  <div class="btn">name: {{ item.name }}, age: {{ item.age }}</div>
 </template>
 
-<style scoped lang="css">
-p {
-  width: 200px;
-  height: 30px;
-  line-height: 30px;
+<style lang="css" scoped>
+.btn {
+  width: 250px;
+  height: 50px;
+  line-height: 50px;
   text-align: center;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 25px;
   cursor: pointer;
 }
 </style>
 ```
 
 ```vue [App.vue]
-<script lang="ts" setup>
-import D2vueBtn from "@/components/d2vue-btn.ce.vue";
+<script setup lang="ts">
 import { defineCustomElement } from "vue";
-// 自定义元素
+import D2vueBtn from "@/components/d2vue-btn.ce.vue";
+
+// Vue 中使用 Web Component 自定义元素
 const Btn = defineCustomElement(D2vueBtn);
 window.customElements.define("d2vue-btn", Btn);
-const item = { name: "whoami", age: 22 };
+const item = { name: "whoami", age: 23 };
 </script>
 
 <template>
-  <div>
-    <d2vue-btn
-      :item="item /** 较早版本需要 JSON.stringify(item) */"
-    ></d2vue-btn>
-  </div>
+  <d2vue-btn :item="item"></d2vue-btn>
 </template>
 ```
 
@@ -1950,7 +1806,7 @@ const item = { name: "whoami", age: 22 };
 
 ## Proxy 跨域
 
-同源: 两个 URL 的协议, 端口和主机都相同
+同源: 主机 (域名), 端口, 协议都相同
 
 ### JSONP
 
@@ -1958,82 +1814,80 @@ const item = { name: "whoami", age: 22 };
 
 ::: code-group
 
-```html [frontend -> localhost:5500]
-<script>
-  function jsonp(req) {
-    const script = document.createElement("script");
-    const url = `${req.url}?callback=${req.callback.name}`;
-    script.src = url;
-    document.getElementsByTagName("head")[0].appendChild(script);
-  }
-  function namedCallback(res) {
-    alert(`JSONP: ${res.data}`);
-  }
-  jsonp({
-    url: "http://localhost:8080",
-    callback: namedCallback,
-  });
-</script>
+```html [frontend (localhost:5500)]
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script>
+      function jsonp(req /* { url, callback } */) {
+        const script = document.createElement("script");
+        const url = `${req.url}?callback=${req.callback.name}`;
+        script.src = url;
+        // 浏览器请求该 <script> 标签的 src
+        // 响应: frontendFn({"data":"I Love You"})
+        document.getElementsByTagName("head")[0].appendChild(script);
+      }
+
+      function frontendFn(res) {
+        alert(`res.data: ${res.data}`);
+      }
+
+      // frontendFn.name: frontendFn
+      console.log("frontendFn.name:", frontendFn.name);
+      jsonp({ url: "http://localhost:8080", callback: frontendFn });
+    </script>
+  </head>
+  <body></body>
+</html>
 ```
 
-```js [backend -> localhost:8080]
+```js [backend (localhost:8080)]
 import http from "node:http";
 import urllib from "node:url";
 
 const port = 8080;
-const replyArgs = { data: "200" };
+const cbParams = { data: "I Love You" };
 http
   .createServer((req, res) => {
     const params = urllib.parse(req.url, true);
     if (params.query.callback) {
-      console.log("callback:", params.query.callback); // callback: namedCallback
-      //                                      jsonp
-      const chunk = `${params.query.callback}(${JSON.stringify(replyArgs)})`;
-      console.log("chunk:", chunk); // chunk: namedCallback({"data":"200"})
-      res.end(chunk);
+      // callback: frontendFn
+      console.log("callback:", params.query.callback);
+      // JSONP, JSON with Padding
+      const jsonWithPadding = `${params.query.callback}(${JSON.stringify(cbParams)})`;
+      // jsonWithPadding: frontendFn({"data":"I Love You"})
+      console.log("jsonWithPadding:", jsonWithPadding);
+      res.end(jsonWithPadding);
     } else {
       res.end();
     }
   })
   .listen(port, () => {
-    console.log(`Server: http://localhost:${port}`);
+    console.log(`http://localhost:${port}`);
   });
 ```
 
 :::
 
-### 后端设置 CORS, 允许跨域资源共享
-
-```json
-{
-  "Access-Control-Allow-Origin": "https://121.41.121.204", // 指定主机可访问
-  "Access-Control-Allow-Origin": "*" // 任意主机可访问, 不安全
-}
-```
-
 ### Vite 代理
 
-::: code-group
+```ts
+import { fileURLToPath, URL } from "node:url";
 
-```js [backend -> localhost:8080]
-import express from "express";
-const port = 8080;
-const app = express();
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
-app.get("/user", (req, res) => {
-  res.json({
-    code: 200,
-    message: "200",
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Server: http://localhost:${port}`);
-});
-```
-
-```ts [vite.config.ts]
+// https://vite.dev/config/
 export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   server: {
     proxy: {
       "/api": {
@@ -2044,14 +1898,3 @@ export default defineConfig({
   },
 });
 ```
-
-```vue [frontend -> localhost:5173]
-<script lang="ts" setup>
-// fetch('http://localhost:8080/user')
-fetch("/api/user")
-  .then((res) => res.json())
-  .then((data) => console.log(data));
-</script>
-```
-
-:::

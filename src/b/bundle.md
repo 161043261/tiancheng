@@ -651,12 +651,12 @@ export default function resolveAlias(aliasConf, jsPath, jsContent) {
 
 ### 页面性能指标
 
-- 首次内容绘制 FCP, First Contentful Paint: 从页面开始加载到浏览器首次渲染出内容的时间 (用户首次看到内容的时间, 内容: 首个文本或首张图片)
-- 最大 DOM 元素的绘制时间 LCP, Largest Contentful Paint
-- 速度指数 SI, Speed Index: 页面的各个可视区域的平均绘制时间, 页面等待后端发送的数据时, 会影响到 Speed Index
-- 首次可交互时间 TTI, Time to Interactive: 从页面开始加载到用户与页面可以交互的时间, 此时页面渲染已完成, 交互元素绑定的事件已注册
-- 总阻塞时间 TBT, Total Blocking Time: 从页面开始加载到首次可交互时间 (TTI) 期间, 主线程被阻塞, 无法与用户交互的总时间
-- 累积布局偏移 CLS, Cumulative Layout Shift: 比较两次渲染的布局偏移情况
+- 首次内容绘制 FCP, First Contentful Paint: 从页面开始加载到浏览器首次渲染出内容的时间 (用户首次看到内容的时间, 内容可以是首段文本或首张图片)
+- 最大内容绘制 LCP, Largest Contentful Paint 视口内最大的内容元素完成渲染的时间
+- 速度指数 SI, Speed Index: 页面的各个可视区域的平均渲染时间, 页面等待后端响应数据时, 会影响到 Speed Index
+- 首次可交互时间 TTI, Time to Interactive: 从页面开始加载到用户可以与页面交互的时间, 此时页面渲染已完成, 交互元素绑定的事件已注册
+- 总阻塞时间 TBT, Total Blocking Time: 从页面开始加载到首次可交互时间 (TTI) 期间, 主线程被阻塞的总时间
+- 累积布局偏移 CLS, Cumulative Layout Shift: 比较两次渲染的布局偏移情况, 数值越小越好
 
 ### 浏览器缓存
 
