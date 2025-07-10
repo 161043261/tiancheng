@@ -556,12 +556,9 @@ const handleInput = (ev: Event) => {
 自定义指令的钩子函数
 
 - created
-- beforeMount
-- mounted
-- beforeUpdate
-- updated
-- beforeUnmount
-- unmounted
+- beforeMount/mounted
+- beforeUpdate/updated
+- beforeUnmount/unmounted
 
 ```vue
 <script setup lang="ts">
@@ -994,7 +991,7 @@ app.mount("#app");
 
 :::
 
-## `app.use()` 源码
+### `app.use()` 源码
 
 ```ts
 import { createApp } from "vue";
@@ -1008,7 +1005,7 @@ interface Plugin {
 }
 const installed = new Set();
 
-export function myUse<T extends Plugin>(plugin: T, ...options: Array<unknown>) {
+function myUse<T extends Plugin>(plugin: T, ...options: Array<unknown>) {
   if (installed.has(plugin)) {
     return;
   }
@@ -1086,78 +1083,183 @@ async function addItem2() {
 </template>
 ```
 
-## scoped 和 :deep() 样式穿透
+## `scoped` 和 `:deep()`
 
-Vue 的 scoped: 样式私有化, 模块化
+### Vue `<style />` 的 `scoped`: 样式私有化
 
-1. 为 DOM 元素添加不重复的 `data-v-hash` 属性 (通过 postcss 实现)
-2. CSS 使用例如 `.main[data-v-hash]` 属性选择器, 以实现样式私有化, 模块化
-3. 如果父组件中包含子组件, 只为子组件的最外层标签添加父组件的 `v-data-hash` 属性
-4. babel 将 JS -> AST, postcss 将 CSS -> AST
+1. 通过 PostCSS, 为 DOM 添加唯一的 `data-v-<hash>` 属性
+2. CSS 使用 `.selector[data-v-<hash>]` 选择器, 以实现样式私有化
 
 ::: code-group
 
-```html [输出的 HTML]
-<main data-v-121257cf="">
-  <p data-v-121257cf="">v-model 父组件</p>
-  <main data-v-241fa5d4="" data-v-121257cf="" class="main">
-    <div data-v-241fa5d4="">v-model 子组件</div>
+```vue [ParentDemo]
+<script setup lang="ts">
+import ChildDemo from "./ChildDemo.vue";
+</script>
+
+<template>
+  <main class="box wrap">
+    <ChildDemo class="box" />
   </main>
-  <main data-v-241fa5d4="" data-v-121257cf="" class="main">
-    <div data-v-241fa5d4="">v-model 子组件</div>
-  </main>
-</main>
+
+  <div class="box my-rounded"></div>
+</template>
+
+<style lang="css" scoped>
+.box {
+  width: 10rem;
+  height: 10rem;
+}
+
+.wrap {
+  margin: 2rem;
+}
+
+.my-rounded {
+  background: #ecfcca;
+  border-radius: 5rem;
+}
+</style>
 ```
 
-```css [输出的 CSS]
-.main[data-v-241fa5d4] {
-  border: 1px solid #ccc;
-  width: 50vw;
-  padding: 5px;
+```vue [ChildDemo]
+<template>
+  <section>
+    <div class="bg-lime-100 h-[100%]" />
+  </section>
+</template>
+```
+
+```html [HTML]
+<!-- @prettier-ignore -->
+<main data-v-0123abcd class="box wrap">
+  <section data-v-0123abcd class="box">
+    <div class="bg-lime-100 h-[100%]"></div>
+  </section>
+</main>
+<div data-v-0123abcd class="box my-rounded"></div>
+```
+
+```css [CSS]
+.box[data-v-0123abcd] {
+  width: 10rem;
+  height: 10rem;
+}
+.wrap[data-v-0123abcd] {
+  margin: 2rem;
+}
+.my-rounded[data-v-0123abcd] {
+  background: #ecfcca;
+  border-radius: 5rem;
 }
 ```
 
 :::
 
-样式穿透 `:deep()` 用于修改 [element-plus](https://element-plus.org/zh-CN/component/overview.html), [antd-vue](https://antdv.com/components/overview-cn), [vant](https://vant-ui.github.io/vant/#/zh-CN/quickstart), [tailwind UI](https://tailwindui.com/components) 的默认样式
+### Vue `<style />` 的 `:deep()`: 样式穿透
 
-```vue
+未使用 `:deep()` 样式穿透
+
+::: code-group
+
+```vue [ParentDemo]
 <script setup lang="ts">
-import { ElInput } from "element-plus";
-import { ref } from "vue";
-const ipt = ref("");
+import ChildDemo from "./ChildDemo.vue";
 </script>
 
 <template>
-  <main>
-    <ElInput v-model:model-value="ipt">尽情的输入</ElInput>
+  <main class="box wrap">
+    <ChildDemo class="box child-bg" />
   </main>
 </template>
 
-<style scoped lang="css">
-.el-input__inner {
-  /** BEM 架构 */
-  background: lightpink;
+<style lang="css" scoped>
+.box {
+  width: 10rem;
+  height: 10rem;
 }
 
-:deep(.el-input__inner) {
-  /** 样式穿透, BEM 架构 */
+.wrap {
+  margin: 2rem;
+}
+
+/* .wrap .child-bg { // [!code --] */
+.wrap :deep(.child-bg) {
   background: lightblue;
 }
 </style>
 ```
 
-打包后
+```vue [ChildDemo]
+<template>
+  <section>
+    <div class="h-[100%] child-bg" />
+  </section>
+</template>
 
-```css
-.el-input__inner[data-v-c3fc00e5] {
+<style lang="css" scoped>
+.child-bg {
   background: lightpink;
 }
-
-[data-v-c3fc00e5] .el-input__inner {
-  background: lightblue;
-}
+</style>
 ```
+
+```html [HTML]
+<!-- @prettier-ignore -->
+<main data-v-0483219d class="box wrap">
+  <section data-v-5733c3a6 data-v-0483219d="" class="box child-bg">
+    <div data-v-5733c3a6 class="h-[100%] child-bg"></div>
+  </section>
+</main>
+```
+
+```html [CSS]
+<!-- ParentDemo -->
+<style type="text/css">
+  .box[data-v-0123abcd] {
+    width: 10rem;
+    height: 10rem;
+  }
+  .wrap[data-v-0123abcd] {
+    margin: 2rem;
+  }
+  .wrap .child-bg[data-v-0123abcd] {
+    background: lightblue;
+  }
+</style>
+
+<!-- ChildDemo -->
+<style type="text/css">
+  .child-bg[data-v-4567efgh] {
+    background: lightpink;
+  }
+</style>
+```
+
+```html [使用样式穿透 CSS]
+<!-- ParentDemo -->
+<style type="text/css">
+  .box[data-v-0123abcd] {
+    width: 10rem;
+    height: 10rem;
+  }
+  .wrap[data-v-0123abcd] {
+    margin: 2rem;
+  }
+  .wrap[data-v-0123abcd] .child-bg {
+    background: lightblue;
+  }
+</style>
+
+<!-- ChildDemo -->
+<style type="text/css">
+  .child-bg[data-v-4567efgh] {
+    background: lightpink;
+  }
+</style>
+```
+
+:::
 
 ## Vue 其他 CSS 特性
 
