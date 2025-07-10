@@ -1202,9 +1202,9 @@ import ChildDemo from "./ChildDemo.vue";
 
 ```html [HTML]
 <!-- @prettier-ignore -->
-<main data-v-0483219d class="box wrap">
-  <section data-v-5733c3a6 data-v-0483219d="" class="box child-bg">
-    <div data-v-5733c3a6 class="h-[100%] child-bg"></div>
+<main data-v-0123abcd class="box wrap">
+  <section data-v-4567efgh data-v-0123abcd class="box child-bg">
+    <div data-v-4567efgh class="h-[100%] child-bg"></div>
   </section>
 </main>
 ```
@@ -1381,14 +1381,14 @@ console.log("customStyles:", customStyles);
 
 圣杯布局: 两侧盒子宽度固定, 中间盒子宽度自适应的三栏布局
 
-- rem: 相对 `<html />` 根元素的字体大小
+- rem: 相对 `<html>` 根元素的字体大小
 - vw/vh: 相对视口 viewport 的宽高, 1vw 是视口宽度的 1%, 1vh 是视口高度的 1%
 - 百分比: 相对父元素的宽高
 
 全局字体大小原理
 
 - 定义 :root 伪类选择器的全局 CSS 变量, 所有页面都可以使用
-- :root 伪类选择器和 html 元素选择器都选中 `<html />` 根元素, 但是 :root 伪类选择器的优先级更高
+- :root 伪类选择器和 html 元素选择器都选中 `<html>` 根元素, 但是 :root 伪类选择器的优先级更高
 
 ```vue
 <script setup lang="ts">
@@ -1754,7 +1754,7 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          // 文件名带 - 的, 文件拓展名 .ce.vue 的单文件组件, 视为 Web Component 自定义元素
+          // 文件名带 - , 文件拓展名 .ce.vue 的单文件组件, 视为 Web Component 自定义元素
           isCustomElement: (tag) => tag.startsWith("d2vue-"),
         },
       },
