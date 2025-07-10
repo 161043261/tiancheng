@@ -2,18 +2,18 @@
 
 ## Event Loop 事件循环
 
-**JS 是单线程的**: JS 的主要任务是操作 DOM, 处理用户交互; 如果 JS 是多线程的, 可能操作 DOM 冲突, 例如两个线程同时操作一个 DOM, 一个负责修改另一个负责删除
+JS 是单线程的: 如果 JS 是多线程的, 同时操作 DOM 时可能冲突; 例如两个线程同时操作一个 DOM, 一个负责修改、另一个负责删除; 有多线程的 Web Worker, 但是 Web Worker 不允许操作 DOM
 
 chrome 为每一个页面创建一个渲染进程, 渲染进程是多线程的, 主要包含
 
-- **GUI 渲染线程**: 负责渲染页面, 解析 HTML, CSS; 构建 DOM 树, CSSOM 树; 将 DOM 树和 CSSOM 树合并为渲染树 (Render Tree); 布局和绘制等; 当页面需要重绘 (repaint) 或回流 (reflow, 也称为重排) 时, 执行 GUI 渲染线程; 注意: GUI 渲染线程和 JS 引擎线程是互斥执行的, 即 GUI 渲染线程执行时, JS 引擎线程会被挂起; JS 引擎线程执行时, GUI 渲染线程会被挂起
-- **JS 引擎线程**: 负责解析, 执行 JS 代码, JS 是单线程的, 一个页面 (一个渲染进程) 中只有一个 JS 引擎线程 (例如 V8 引擎), JS 的主要任务是操作 DOM, 处理用户交互; 如果 JS 是多线程的, 可能操作 DOM 冲突, 例如两个线程同时操作一个 DOM, 一个负责修改另一个负责删除
-- **事件触发线程**: 控制事件循环, 负责将同步任务加入同步任务栈 (函数调用栈), 将异步任务加入异步任务队列 (宏任务加入宏任务队列, 微任务加入微任务队列)
-- **定时器触发线程**: 执行 setTimeout, setInterval 的线程
-- **异步 http 请求线程**: 执行 XMLHttpRequest 的线程
-- **I/O 线程**: 负责文件 I/O, 进程间通信 IPC
+- GUI 渲染线程: 负责渲染页面, 解析 HTML, CSS; 构建 DOM (Document Object Model) 树, CSSOM (Cascading Style Sheets Object Model) 树; 将 DOM 树和 CSSOM 树合并为渲染树 (Render Tree); 布局和绘制等; 当页面需要重绘 (repaint) 或回流 (reflow, 也称为重排) 时, 执行 GUI 渲染线程; 注意: GUI 渲染线程和 JS 引擎线程是互斥执行的, 即 GUI 渲染线程执行时, JS 引擎线程会被挂起; JS 引擎线程执行时, GUI 渲染线程会被挂起
+- JS 引擎线程: 负责解析、执行 JS 代码; JS 是单线程的, 一个页面 (一个渲染进程) 中只有一个 JS 引擎线程 (例如 V8 引擎)
+- 事件触发线程: 控制事件循环, 负责将同步任务加入同步任务栈 (函数调用栈), 将异步任务加入异步任务队列 (宏任务加入宏任务队列, 微任务加入微任务队列)
+- 定时器触发线程: 执行 setTimeout, setInterval 的线程
+- 网络线程: 执行 XMLHttpRequest 的线程
+- I/O 线程: 负责文件 I/O, 进程间通信 IPC
 
-**单线程本质**: JS 主线程负责执行所有同步代码, 微任务和宏任务回调, 宏任务触发可能依赖其他线程
+单线程本质: JS 主线程负责执行所有同步代码, 微任务和宏任务回调, 宏任务触发可能依赖其他线程
 
 - setTimeout/setInterval: 依赖定时器触发线程
 - I/O 操作: XMLHttpRequest, fetch, postMessage 依赖网络线程, node 环境依赖 libuv
@@ -23,22 +23,24 @@ chrome 为每一个页面创建一个渲染进程, 渲染进程是多线程的, 
 
 - 同步任务: 代码从上到下顺序执行
 - 异步任务: 分为宏任务和微任务
-  - 宏任务: `<script>` 整体代码, setTimeout, setInterval, I/O 操作 (XMLHttpRequest, fetch, postMessage), requestAnimationFrame (下一帧时执行传递的回调函数), setImmediate (node 环境, 当前事件循环结束后执行传递的回调函数)
-  - 微任务: Promise[.then, .catch, .finally], MutationObserver (监听 DOM 树的改变), process.nextTick (node 环境)
+  - 宏任务: `<script />` 整体代码, `setTimeout`, `setInterval`, I/O 操作 (`XMLHttpRequest`, `fetch`, `postMessage`), `requestAnimationFrame` (下一帧时执行传递的回调函数), `setImmediate` (node 环境, 当前事件循环结束后执行传递的回调函数)
+  - 微任务: `Promise[.then, .catch, .finally]`, `MutationObserver` (监听整个 DOM 树的改变), `process.nextTick` (node 环境)
 
 Promise 的构造函数是同步的 `new Promise((resolve, reject) => {/** 同步代码 */})`
 
 ### 运行机制
 
-- 同步任务栈 Stack: 存放同步任务
-- 异步任务队列 Queue: 先执行一个宏任务, 再执行当前宏任务的微任务, 然后进入下一个事件循环
-  - 宏任务队列
-  - 微任务队列
+- 同步任务栈 stack: 存放同步任务 (无需关注)
+- 异步任务队列 queue: 先执行一个宏任务, 再执行当前宏任务的微任务, 然后进入下一个事件循环
+  - 宏任务队列: 宏任务加入宏任务队列
+  - 微任务队列: 微任务加入微任务队列
 
 ### 练习
 
 ```js
+//=======================
 // 宏任务 0 (整体代码)
+//=======================
 
 async function wtf() {
   console.log("Y");
@@ -81,46 +83,12 @@ console.log(0);
 1. 处理用户事件: 例如 change, click, input 等
 2. 执行定时器回调函数
 3. 执行 requestAnimationFrame
-4. 计算布局, 绘制: 执行 DOM 的重绘 (repaint 有关颜色的..., 性能开销小) 和回流 (reflow 重排, 有关宽高的..., 性能开销大) 等
-5. 如果有空闲时间, 则执行 requestIdleCallback (IDLE 期间可以懒加载 JS 脚本)
-
-- `Partial<Type>` 所有字段可选
-- `Required<Type>` 所有字段必选
-- `Readonly<Type>` 所有字段只读
-- `Record<Key, Value>`
-
-```ts
-// 接口
-interface IAdd {
-  (a: number, b: number): number;
-}
-
-// Pick
-interface IUser {
-  name: string;
-  age: number;
-  gender: "male" | "female";
-}
-
-type TLgbt = Pick<IUser, "name" | "age">; // { name: string; age: number; }
-
-// Exclude
-type TOptions = "A" | "B" | "C" | "D";
-type TError = "A" | "B";
-type TOk = Exclude<TOptions, TError>; // "C" | "D"
-
-// Omit
-type TGender = Omit<IUser, "name" | "age">; // { gender: "male" | "female"; }
-
-// ReturnType<Fn>
-const fn = (a: number, b: number) => [a, b];
-type TParameters /** [a: number, b: number] */ = Parameters<typeof fn>;
-type TReturnType /** number[] */ = ReturnType<typeof fn>;
-```
+4. 布局和绘制: 执行 DOM 的重绘 (repaint 有关颜色的..., 性能开销小) 和回流 (reflow 有关宽高的..., 性能开销大) 等
+5. 如果有空闲时间, 则执行 requestIdleCallback (idle 期间可以懒加载 JS 脚本)
 
 ## v8 垃圾回收
 
-v8 将堆内存分为新生代和老年代, 新生代中的对象存活时间较短, 老生代中的对象存活时间较长, 或常驻内存
+v8 将堆内存分为新生代和老年代, 新生代中的对象存活时间较短, 老生代中的对象存活时间较长, 甚至常驻内存
 
 垃圾回收中, 代际假说认为大多数对象存活时间较短
 
@@ -140,7 +108,7 @@ v8 将堆内存分为新生代和老年代, 新生代中的对象存活时间较
 
 对象从新生代 (from-space) 晋升到老年代的条件: 对象至少经历过 1 次 gc, 或 to-space 的内存使用率超过 25%
 
-### 老年代 gc: Mark-Sweep (标记清除) 或 Mark-Compact (紧凑)
+### 老年代 gc: Mark-Sweep (标记-清除) 或 Mark-Compact (标记-紧凑)
 
 ```js
 // 引用计数法不能解决循环引用问题
@@ -154,21 +122,21 @@ v8 将堆内存分为新生代和老年代, 新生代中的对象存活时间较
 
 ### Mark-Sweep (标记-清除) 内存碎片化程度低时执行
 
-**标记**
+标记
 
 - 构建一个根列表, 从根节点出发, 遍历所有可达对象, 标记为存活的; 不可达对象视为死亡的 (垃圾)
-- 根节点包括全局对象; 函数的参数, 局部变量; 闭包引用的对象; DOM 元素等...
+- 根节点包括全局对象、函数的参数, 局部变量、闭包引用的对象、DOM 元素等...
 
-**清除**: 清除阶段直接回收死亡对象 (垃圾) 占用的内存, 可能导致内存碎片化
+清除: 清除阶段直接回收死亡对象 (垃圾) 占用的内存, 可能导致内存碎片化
 
 ### Mark-Compact (标记-紧凑) 内存碎片化程度高时执行
 
-**标记**
+标记
 
 - 构建一个根列表, 从根节点出发, 遍历所有可达对象, 标记为存活的; 不可达对象视为死亡的 (垃圾)
 - 根节点包括全局对象; 函数的参数, 局部变量; 闭包引用的对象; DOM 元素等...
 
-**紧凑**: 紧凑阶段先将存活的对象移动到连续内存区域, 以消除内存碎片; 再回收其他内存区域
+紧凑: 紧凑阶段先将存活的对象移动到连续内存区域, 以消除内存碎片; 再回收其他内存区域
 
 ### 如何避免内存泄漏
 
@@ -200,7 +168,7 @@ function remove() {
 }
 ```
 
-调用 `remove` 以移除 button 元素, 但是 map, record 中仍有对该 button 元素的引用, 需要手动 `map.delete('btn')` 和 `delete record.btn` (或 `record.btn = null`)
+调用 `remove` 函数以移除 button 元素, 但是 map, record 中仍有对该 button 元素的引用, 需要手动 `map.delete('btn')` 和 `delete record.btn` (或 `record.btn = null`)
 
 ### WeakMap 实验
 
@@ -225,9 +193,9 @@ process.memoryUsage().heapUsed; // 5478168
 
 ### 概述
 
-Web Workers 允许主线程创建 worker 线程, 主线程负责 UI 事件, worker 线程负责计算密集型任务 (不允许操作 DOM), 页面会更加流畅, worker 线程创建后, 就会始终运行, 不会被主线程打断
+Web Worker 允许主线程创建 worker 线程, 主线程负责 UI 事件, worker 线程负责计算密集型任务 (不允许操作 DOM), 页面会更加流畅, worker 线程创建后, 就会始终运行, 不会被主线程打断
 
-Web Workers 有以下限制
+Web Worker 有以下限制
 
 1. 同源限制: worker 线程执行的脚本必须与主线程执行的脚本同源
 2. worker 线程不允许操作 DOM, 不允许使用 document, window, parent 等对象, 但是可以使用 navigator 和 location 对象
@@ -279,7 +247,7 @@ worker.onmessage = function (ev) {
 
 主进程和 worker 进程的通信: 深拷贝
 
-避免深拷贝: 使用 Transferable Objects (转移所有权)
+避免深拷贝: 使用 Transferable Objects 转移所有权
 
 ```js
 // 主进程
@@ -291,6 +259,43 @@ worker.postMessage(arr, [arr]); // 转移所有权
 /* self. */ onmessage = function (ev) {
   console.log(ev.data);
 };
+```
+
+## TS 类型工具
+
+- `Partial<Type>` 所有字段可选
+- `Required<Type>` 所有字段必选
+- `Readonly<Type>` 所有字段只读
+- `Record<Key, Value>`
+- Pick, Exclude, Omit, ReturnType
+
+```ts
+// 接口
+interface IAdd {
+  (a: number, b: number): number;
+}
+
+// Pick
+interface IUser {
+  name: string;
+  age: number;
+  gender: "male" | "female";
+}
+
+type TLgbt = Pick<IUser, "name" | "age">; // { name: string; age: number; }
+
+// Exclude
+type TOptions = "A" | "B" | "C" | "D";
+type TError = "A" | "B";
+type TOk = Exclude<TOptions, TError>; // "C" | "D"
+
+// Omit
+type TGender = Omit<IUser, "name" | "age">; // { gender: "male" | "female"; }
+
+// ReturnType<Fn>
+const fn = (a: number, b: number) => [a, b];
+type TParameters /** [a: number, b: number] */ = Parameters<typeof fn>;
+type TReturnType /** number[] */ = ReturnType<typeof fn>;
 ```
 
 ## infer (TS)

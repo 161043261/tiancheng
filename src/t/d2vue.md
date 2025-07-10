@@ -792,8 +792,8 @@ useBase64str(imgRef).then((res) => {
 ### 自定义指令 + 自定义 hook 综合案例
 
 - InterSectionObserver 监听目标元素与祖先元素或视口 viewport 的相交情况
-- MutationObserver 监听整个 DOM 树的变化
-- ResizeObserver 监听元素宽高的变化
+- MutationObserver 监听整个 DOM 树的改变
+- ResizeObserver 监听元素宽高的改变
 
 ::: code-group
 
@@ -1026,10 +1026,8 @@ app.mount("#app");
 
 Vue 同步更新数据, 异步更新 DOM
 
-> [!caution] Vue 异步更新 DOM
->
-> 1. Vue 将 DOM 更新加入更新队列, 等到下一个事件循环时, 才批量更新 DOM
-> 2. nextTick 延迟执行回调函数, 即等待下一个事件循环 DOM 更新后, 再执行 callback
+- Vue 将 DOM 更新加入任务队列, 等到下一个 tick (类似事件循环) 时, 才统一更新 DOM, 避免多次重复渲染, 提高性能
+- nextTick 延迟执行 callback, 即等到下一个 tick, DOM 更新后, 再执行 callback
 
 案例
 
@@ -1042,53 +1040,53 @@ const itemList = reactive([
   { name: "item2", id: 2 },
 ]);
 
-const ipt = ref("");
+const inputVal = ref("");
 const box = useTemplateRef<HTMLDivElement>("box");
 
-//! Vue 同步更新数据, 异步更新 DOM
-// 所以滚动位置 scrollTop 不会实时更新
-function addItem() {
-  itemList.push({ name: ipt.value, id: itemList.length });
-  // 同步代码执行后, 异步更新 DOM
-  // nextTick 可以接收一个回调函数
-  nextTick(
-    () => {
-      box.value!.scrollTop = 520520520; // 更新滚动位置
-    } /** callback */,
-  );
-}
+// Vue 同步更新数据, 异步更新 DOM
+const addItem = () => {
+  itemList.push({ name: inputVal.value, id: itemList.length });
+  box.value!.scrollTop = 520_520_520; // 更新滚动位置 (此时 DOM 未更新)
+};
 
-async function addItem2() {
-  itemList.push({ name: ipt.value, id: itemList.length });
-  await nextTick(); // 等待下一个事件循环结束 (DOM 已更新)
-  box.value!.scrollTop = 520520520; // 更新滚动位置
-}
+const addItem2 = () => {
+  itemList.push({ name: inputVal.value, id: itemList.length });
+  // nextTick 延迟执行 callback, 即等到下一个 tick, DOM 更新后, 再执行 callback
+  nextTick(
+    () => (box.value!.scrollTop = 520_520_520), // callback (此时 DOM 已更新)
+  );
+};
+
+const addItem3 = async () => {
+  itemList.push({ name: inputVal.value, id: itemList.length });
+  await nextTick(); // 等到下一个 tick, DOM 更新后
+  box.value!.scrollTop = 520_520_520; // 更新滚动位置 (此时 DOM 已更新)
+};
 </script>
 
 <template>
-  <main>
-    <div ref="box" class="wrapper">
-      <div class="item" v-for="item in itemList" :key="item.name">
-        <div>id: {{ item.id }}, name: {{ item.name }}</div>
-      </div>
-
-      <!-- ipt: input -->
-      <div class="ipt">
-        <textarea v-model="ipt" type="text"></textarea>
-        <button @click="addItem">addItem</button>
-        <button @click="addItem2">addItem2</button>
-      </div>
+  <div ref="box" class="border-1 h-30 w-50 overflow-auto">
+    <div class="border-b-1 truncate" v-for="item in itemList" :key="item.id">
+      {{ item }}
     </div>
-  </main>
+  </div>
+  <div>
+    <textarea v-model="inputVal" type="text" class="my-3 border-1" />
+    <div class="flex gap-5">
+      <button @click="addItem">addItem</button>
+      <button @click="addItem2">addItem2</button>
+      <button @click="addItem3">addItem3</button>
+    </div>
+  </div>
 </template>
 ```
 
-## `scoped` 和 `:deep()`
+## `scoped` 样式隔离, `:deep()` 样式穿透
 
-### Vue `<style />` 的 `scoped`: 样式私有化
+### `scoped` 样式隔离
 
 1. 通过 PostCSS, 为 DOM 添加唯一的 `data-v-<hash>` 属性
-2. CSS 使用 `.selector[data-v-<hash>]` 选择器, 以实现样式私有化
+2. CSS 使用 `selector[data-v-<hash>]` 选择器, 以实现样式隔离
 
 ::: code-group
 
@@ -1156,9 +1154,7 @@ import ChildDemo from "./ChildDemo.vue";
 
 :::
 
-### Vue `<style />` 的 `:deep()`: 样式穿透
-
-未使用 `:deep()` 样式穿透
+### `:deep()` 样式穿透
 
 ::: code-group
 
@@ -1213,7 +1209,7 @@ import ChildDemo from "./ChildDemo.vue";
 </main>
 ```
 
-```html [CSS]
+```html [CSS (未使用样式穿透)]
 <!-- ParentDemo -->
 <style type="text/css">
   .box[data-v-0123abcd] {
@@ -1236,7 +1232,7 @@ import ChildDemo from "./ChildDemo.vue";
 </style>
 ```
 
-```html [使用样式穿透 CSS]
+```html [CSS (使用样式穿透)]
 <!-- ParentDemo -->
 <style type="text/css">
   .box[data-v-0123abcd] {
@@ -1261,77 +1257,70 @@ import ChildDemo from "./ChildDemo.vue";
 
 :::
 
-## Vue 其他 CSS 特性
+## `:slotted` 插槽选择器, `:global` 全局选择器
 
-### :slotted() 插槽选择器
+### `:slotted()` 插槽选择器
 
 ::: code-group
 
-```vue [子组件]
+```vue [ParentDemo]
+<script setup lang="ts">
+import ChildDemo from "./ChildDemo.vue";
+</script>
+
 <template>
-  <main>
-    <div>匿名插槽</div>
-    <slot></slot>
-  </main>
+  <ChildDemo>
+    <div class="parent-bg">插入到子组件的匿名插槽 default</div>
+  </ChildDemo>
+</template>
+```
+
+```vue [ChildDemo]
+<template>
+  <div>
+    <!-- 匿名插槽 name="default" -->
+    <slot />
+  </div>
 </template>
 
-<style scoped lang="css">
-:slotted(.default-slot-template) {
-  width: 200px;
-  height: 200px;
-  background: azure;
+<style lang="css" scoped>
+/* .parent-bg { // [!code --] */
+:slotted(.parent-bg) {
+  background: lightpink;
 }
 </style>
 ```
 
-```vue [父组件]
-<script setup lang="ts">
-import SlotSelectorChild from "./SlotSelectorChild.vue";
-</script>
-
-<template>
-  <main>
-    <SlotSelectorChild>
-      <div class="default-slot-template">父组件插入到子组件的匿名插槽</div>
-    </SlotSelectorChild>
-  </main>
-</template>
-```
-
 :::
 
-### :global 全局选择器
+### `:global` 全局选择器
 
-1. 不加 scoped, 就是全局选择器
-2. 加 scoped, 并使用 `:global(button) {}`, 也是全局选择器
+1. 不加 `scoped`, 就是全局选择器
+2. 加 `scoped`, 并使用 `:global(selector) {}`, 也是全局选择器
 
-### 动态 CSS
-
-可以在 style 块中使用 v-bind
+### `v-bind` 动态 CSS
 
 ```vue
 <script setup lang="ts">
-const bg = ref("lightpink");
-const style = ref({
-  color: "white",
-});
+import { ref } from "vue";
+
+const bg = ref("#000");
+const text = ref({ color: "#fff" });
+
 setInterval(() => {
-  bg.value = bg.value === "lightpink" ? "lightblue" : "lightpink";
+  bg.value = bg.value === "#fff" ? "#000" : "#fff";
+  text.value.color = text.value.color === "#fff" ? "#000" : "#fff";
 }, 1000);
 </script>
 
 <template>
-  <main>
-    <div class="dynamic-css">动态 CSS</div>
-  </main>
+  <div class="box w-20 h-20 border-1">v-bind: Dynamic CSS</div>
 </template>
 
 <style scoped lang="css">
-.dynamic-css {
-  width: 30vw;
-  text-align: center;
+.box {
   background: v-bind(bg);
-  color: v-bind("style.color");
+  color: v-bind("text.color");
 }
 </style>
 ```
@@ -1342,124 +1331,95 @@ setInterval(() => {
 <script setup lang="ts">
 import { useCssModule } from "vue";
 
-const styleMod = useCssModule(); // 默认模块 $style
-const customMod = useCssModule("customModule"); // 自定义模块 customMod
-console.log(styleMod);
-console.log(customMod);
-// 场景
-// () => (<div class={$style.box}>这是 JSX</div>)
+const styles = useCssModule(); // 默认模块 $style
+const customStyles = useCssModule("customName"); // 自定义模块名 customName
+console.log("styles:", styles);
+console.log("customStyles:", customStyles);
 </script>
 
 <template>
-  <main style="display: flex">
+  <main class="flex flex-col gap-5">
     <!-- 默认模块 $style -->
     <div :class="$style.box">CSS Module</div>
+    <div :class="styles.box">CSS Module</div>
     <!-- class 可以绑定数组 -->
-    <div :class="[$style.box, $style.border]">CSS Module2</div>
+    <div :class="[$style.box, styles.border]">CSS Module</div>
     <!-- 可以自定义模块名 -->
-    <div :class="[$style.box, customModule.bg]">CSS Module3</div>
+    <div :class="[$style.box, customName.bg]">CSS Module</div>
+    <div :class="[styles.box, customStyles.bg]">CSS Module</div>
   </main>
 </template>
 
 <style module lang="css">
 .box {
-  width: 100px;
-  height: 100px;
+  width: 5rem;
+  height: 5rem;
   background: lightblue;
 }
 
 .border {
-  border: 1px solid #000;
+  border: 1px solid #333;
 }
 </style>
 
 <!-- 可以自定义模块名 -->
-<style module="customModule">
+<style module="customName">
 .bg {
   background: lightpink;
 }
 </style>
 ```
 
-## Vue 集成 [tailwindcss](https://www.tailwindcss.cn/docs/installation)
-
-请看 (README.md)[https://github.com/161043261/ffmpeg-wrapper/blob/main/README.md]
-
 ## H5 适配
 
 ```html
-<!-- 移动端适配: 设置 meta 标签 -->
+<!-- h5 适配: 设置 meta 标签 -->
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 ```
 
-### 圣杯布局
+### 圣杯布局 + 全局字体大小
 
-两侧盒子宽度固定, 中间盒子宽度自适应的三栏布局, 其中中间盒子放在文档流前面, 保证先渲染
+圣杯布局: 两侧盒子宽度固定, 中间盒子宽度自适应的三栏布局
 
-1. 1px 大约 2~3 mm
-2. rem: html 标签的 font-size
-3. vw, vh: 相对视口宽高; 百分比: 相对父元素宽高
+- rem: 相对 `<html />` 根元素的字体大小
+- vw/vh: 相对视口 viewport 的宽高, 1vw 是视口宽度的 1%, 1vh 是视口高度的 1%
+- 百分比: 相对父元素的宽高
+
+全局字体大小原理
+
+- 定义 :root 伪类选择器的全局 CSS 变量, 所有页面都可以使用
+- :root 伪类选择器和 html 元素选择器都选中 `<html />` 根元素, 但是 :root 伪类选择器的优先级更高
 
 ```vue
 <script setup lang="ts">
 import { useCssVar } from "@vueuse/core";
 
-function changeFontSize(pixel: number) {
+const setGlobalFontSize = (pxVal: number) => {
   const fontSize = useCssVar("--font-size");
-  fontSize.value = `${pixel}px`;
-  // 实现原理
-  // document.documentElement.style.setProperty('--font-size', `${pixel}px`)
-}
+  fontSize.value = `${pxVal}px`;
+  // 底层: document.documentElement.style.setProperty('--font-size', `${pxVal}px`)
+};
 </script>
 
 <template>
-  <header class="header">
-    <div>left</div>
-    <div>
+  <header class="flex">
+    <div class="w-[100px] bg-lime-200 my-div">left</div>
+    <div class="flex-1 bg-blue-300 my-div">
       center
-      <button @click="changeFontSize(36)">大号字体</button>
-      <button @click="changeFontSize(24)">中号字体</button>
-      <button @click="changeFontSize(12)">小号字体</button>
+      <button class="mx-[10px]" @click="setGlobalFontSize(36)">大号字体</button>
+      <button class="mx-[10px]" @click="setGlobalFontSize(24)">中号字体</button>
+      <button class="mx-[10px]" @click="setGlobalFontSize(12)">小号字体</button>
     </div>
-    <div>right</div>
+    <div class="w-[100px] bg-lime-200 my-div">right</div>
   </header>
 </template>
 
-<style scoped lang="scss">
-/**
-全局字体大小: 定义根元素的 CSS 变量, 任何页面都可以使用
-也可参考 vitepress 的 `.vitepress/theme/style.css` 全局样式
- */
-:root /** 即 html */ {
-  --font-size: 24px;
-}
+<style scoped lang="css">
+@reference "tailwindcss";
 
-.header {
-  display: flex;
-
-  div {
-    height: 50px;
-    line-height: 50px;
-    color: #fff;
-    text-align: center;
-    font-size: var(--font-size);
-  }
-
-  div:nth-child(1) {
-    width: 100px; /** 建议使用 vw */
-    background-color: lightpink;
-  }
-  div:nth-child(2) {
-    /** flex: 1
-    可以拉伸, 可以压缩, 初始长度为 0 (伸缩项目的宽或高失效)
-    */
-    flex: 1; // 自适应
-    background-color: lightblue;
-  }
-  div:nth-child(3) {
-    width: 100px; /** 建议使用 vw */
-    background-color: lightgreen;
-  }
+.my-div {
+  @apply h-[100px] leading-[100px] text-slate-500 text-center;
+  font-size: var(--font-size);
 }
 </style>
 ```
@@ -1467,78 +1427,35 @@ function changeFontSize(pixel: number) {
 ### 编写 postcss 插件
 
 ```ts
-/**
- * @description Pixel to viewport postcss plugin.
- */
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 import { Plugin } from "postcss";
 
-const defaultOptions = {
-  viewportPixelWidth: 375, // UI 设计稿指定的宽度, 单位 px
-};
-
-interface IOptions {
-  viewportPixelWidth?: number;
-}
-
-export const px2vw = (options: IOptions = defaultOptions): Plugin => {
-  const opt = { ...options, ...defaultOptions };
-  // 等价于 const opt = Object.assign({}, defaultOptions, options)
+// pnpm i postcss -D
+function postcssPluginPx2viewport(): Plugin {
   return {
-    postcssPlugin: "pixel2viewport",
-    // 获取 CSS 节点
+    postcssPlugin: "postcss-plugin-px2viewport",
     Declaration(node) {
       if (node.value.includes("px")) {
-        // px 转 vw
-        return;
-        // console.log(node.value, node.prop)
-        const val = parseFloat(node.value);
-        node.value = `${((val / opt.viewportPixelWidth) * 100).toFixed(2)}vw`;
+        // console.log(node.prop, node.value);
+        const val = Number.parseFloat(node.value);
+        node.value = `${((val / 375) /** 设计稿宽度 375 */ * 100).toFixed(2)}vw`;
       }
     },
   };
-};
-```
-
-`vite.config.ts` 中使用 postcss 插件
-
-```ts
-import { px2vw } from "./plugins/postcss";
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  /** ... */
+  plugins: [vue()],
   css: {
     postcss: {
       // 自定义 postcss 插件
-      plugins: [px2vw()],
+      plugins: [postcssPluginPx2viewport()],
     },
   },
 });
 ```
-
-### 案例: 全局修改字体大小
-
-1. 全局字体大小: 定义根元素 `:root` 的 CSS 变量, 所有页面都可以使用
-2. 可以参考 vitepress 如何设置全局样式
-
-```bash
-pnpm i @vueuse/core
-```
-
-```ts
-import { useCssVar } from "@vueuse/core";
-
-function changeFontSize(pixel: number) {
-  const fontSize = useCssVar("--font-size");
-  fontSize.value = `${pixel}px`;
-  // 实现原理
-  // document.documentElement.style.setProperty('--font-size', `${pixel}px`)
-}
-```
-
-## CSS 原子化
-
-CSS 原子化的优点: CSS 复用, 减小 CSS 体积
 
 ## Vue 函数式编程
 

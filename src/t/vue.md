@@ -1018,7 +1018,7 @@ onMounted(() => {
 
 ### 方式 1: 通过父组件转发 (forward)
 
-BoyDemo -> ParentDemo (forward) -> GirlDemo
+BoyDemo.vue -> ParentDemo.vue (forward) -> GirlDemo.vue
 
 ::: code-group
 

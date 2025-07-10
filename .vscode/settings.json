@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "beforeunload",
+    "CSSOM",
     "fulltext",
     "gsap",
     "InnoDB",
@@ -13,5 +14,5 @@
     "varchar",
     "vitepress",
     "vnode"
-  ],
+  ]
 }

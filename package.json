@@ -10,7 +10,7 @@
   "name": "tiancheng",
   "scripts": {
     "build": "vitepress build",
-    "dev": "vitepress dev --open",
+    "dev": "vitepress dev",
     "preview": "vitepress preview",
     "format": "prettier --write ./src .vitepress/theme"
   },
