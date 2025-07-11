@@ -1827,7 +1827,7 @@ const item = { name: "whoami", age: 23 };
         const url = `${req.url}?callback=${req.callback.name}`;
         script.src = url;
         // 浏览器请求该 <script> 标签的 src
-        // 响应: frontendFn({"data":"I Love You"})
+        // 响应: frontendFn({"data":"I love you"})
         document.getElementsByTagName("head")[0].appendChild(script);
       }
 
@@ -1849,7 +1849,7 @@ import http from "node:http";
 import urllib from "node:url";
 
 const port = 8080;
-const cbParams = { data: "I Love You" };
+const cbParams = { data: "I love you" };
 http
   .createServer((req, res) => {
     const params = urllib.parse(req.url, true);
@@ -1858,7 +1858,7 @@ http
       console.log("callback:", params.query.callback);
       // JSONP, JSON with Padding
       const jsonWithPadding = `${params.query.callback}(${JSON.stringify(cbParams)})`;
-      // jsonWithPadding: frontendFn({"data":"I Love You"})
+      // jsonWithPadding: frontendFn({"data":"I love you"})
       console.log("jsonWithPadding:", jsonWithPadding);
       res.end(jsonWithPadding);
     } else {
@@ -1897,4 +1897,24 @@ export default defineConfig({
     },
   },
 });
+```
+
+### 后端允许跨域
+
+```js
+function cors(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+  );
+  // res.header("Access-Control-Allow-Credentials", true);
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Content-type", "application/json;charset=utf-8");
+  // 预检 (pre-flight) 请求
+  if (req.method.toUpperCase() === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+}
 ```

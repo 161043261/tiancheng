@@ -1,4 +1,4 @@
-# Vue3 基础 [Reviewed]
+# Vue3 基础
 
 ## MVVM 架构
 

@@ -11,22 +11,23 @@ source "$ZSH/oh-my-zsh.sh"
 export EDITOR="vim"
 
 # user
-proxy=$(ip route | grep 'default' | awk '{print $3}'):7890
-export HTTP_PROXY=http://$proxy
-export HTTPS_PROXY=http://$proxy
-export ALL_PROXY=socks5://$proxy
+# proxy=?.?.?.?:?
+# proxy=$(ip route | grep 'default' | awk '{print $3}'):7890
+# export HTTP_PROXY=http://$proxy
+# export HTTPS_PROXY=http://$proxy
+# export ALL_PROXY=socks5://$proxy
 
-# C, CC
+# cc, cxx
 export CC="/usr/bin/clang"
 export CXX="/usr/bin/clang++"
 export CMAKE_GENERATOR="Ninja"
 
-# JS, TS
+# js, ts
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# Python3
+# python3
 export PATH="$HOME/venv/bin:$PATH"
 
 # pnpm
@@ -36,8 +37,6 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
-
-. "$HOME/.deno/env"
 ```
 
 ## vim
@@ -67,24 +66,15 @@ esc        # 切换到命令模式
 
 ## ubuntu
 
-```bash
-ip a
-# ip route | grep 'default' | awk '{print $3}'
-# wsl 中使用主机代理
-proxy=$(ip route | grep 'default' | awk '{print $3}'):7890
-export HTTP_PROXY=http://$proxy
-export HTTPS_PROXY=http://$proxy
-export ALL_PROXY=socks5://$proxy
-```
-
 ```shell
 wsl --list [--online]
 wsl --install -d Ubuntu
 wsl --set-default Ubuntu
 wsl --shutdown
-# wsl --unregister Ubuntu
+# wsl --unregister Ubunatu
 
 sudo apt update && sudo apt upgrade && sudo apt-get update && sudo apt-get upgrade -y
+
 sudo apt install \
 apt-transport-https \
 build-essential \
@@ -92,7 +82,7 @@ ca-certificates clang clang-format clangd cmake curl \
 firewalld \
 gdb git \
 iperf3 \
-libboost-all-dev lld lldb llvm \
+lld lldb llvm \
 net-tools ninja-build \
 openssh-server \
 pkg-config \
@@ -103,7 +93,7 @@ zip zsh \
 --fix-missing -y
 
 # git
-git config --global user.name Tiancheng && \
+git config --global user.name tianchenghang && \
 git config --global user.email 'yukino161043261@gmail.com' && \
 git config --global core.autocrlf false && \
 git config --global credential.helper store && \
@@ -127,42 +117,26 @@ nvm ls-remote
 
 # pnpm
 curl -fsSL https://get.pnpm.io/install.sh | sh -
-
-# deno
-curl -fsSL https://deno.land/install.sh | sh
 ```
 
 ## ssh
 
 ```shell
 # client
-cat ~/.ssh/id_rsa.pub | ssh user@192.168.220.140 -p 22 "cat >> ~/.ssh/authorized_keys" && ssh user@192.168.220.140 -p 22
+cat ~/.ssh/id_rsa.pub | ssh user@?.?.?.? -p 22 "cat >> ~/.ssh/authorized_keys" && ssh user@?.?.?.? -p 22
 
 # vim ~/.ssh/config
 Host vm
-  HostName 192.168.220.140
+  HostName ?.?.?.?
   User user
-```
-
-## .wslconfig
-
-vim /mnt/c/Users/admin/.wslconfig
-
-```sh
-[wsl2]
-autoProxy=true
-dnsTunneling=true
-firewall=false
-networkingMode=mirrored
 ```
 
 ## rsync
 
 ```sh
-# tiancheng@yudt12#$
 rsync [-r] <local-src> -e 'ssh -p <remote-port>' user@192.168.220.140:<remote-dst>
 rsync [-r] -e 'ssh -p <remote-port>' user@192.168.220.140:<remote-src> <local-dst>
-# sample
+# example
 rsync ./screenlog.0 \ # src
 -e 'ssh -p 22' user@192.168.220.140:~/screenlog.0 # dst
 
@@ -173,10 +147,9 @@ rsync -e 'ssh -p 22' user@192.168.220.140:~/screenlog.0 \ # src
 ## scp
 
 ```sh
-# tiancheng@yudt12#$
 scp [-r] -p <remote-port> <local-src> user@192.168.220.140:<remote-dest>
 scp [-r] -p <remote-port> user@192.168.220.140:<remote-src> <local-dst>
-# sample
+# example
 scp -p 22 ./screenlog.0 \ # src
 user@192.168.220.140:~/screenlog.0 # dst
 

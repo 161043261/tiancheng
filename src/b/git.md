@@ -35,26 +35,20 @@ git submodule update --init --recursive
 ## 搭建本机 git 服务器
 
 ```bash
-sudo adduser git # 添加 git 用户
-# sudo usermod -aG sudo git # 将 git 用户添加到 sudo 组
-# sudo passwd git # 更新 git 用户的密码
-# sudo userdel -r git # 删除 git 用户
+sudo adduser git          # 添加 git 用户
+sudo usermod -aG sudo git # 将 git 用户添加到 sudo 组
+sudo passwd git           # 更新 git 用户的密码
+sudo userdel -r git       # 删除 git 用户
 
 su git
-whoami # git
 cd
-mkdir repo.git
-cd repo.git
-git init --bare
+git init --bare repo-name.git
 
-whoami # user
-cd
-mkdir repo
-cd repo
-# vim build.sh
+su user
+cd /path/to/repo-name
 git add .
 git commit -m 'Initial commit' # ./build.sh
-git remote add origin ssh://git@localhost/home/git/repo.git
+git remote add origin ssh://git@localhost/home/git/repo-name.git
 git push origin main --set-upstream
 ```
 

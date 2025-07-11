@@ -1,5 +1,21 @@
 # frontend
 
+## vscode 常用正则
+
+```sh
+//(?!.*\..*\.).*\n  # //
+/\*(.|\r\n|\n)*?\*/ # /**/
+^\s*(?=\r?$)\n      # blank line
+^(\s*)#.*           # #
+```
+
+## 导出 vscode 插件
+
+```bash
+code --list-extensions
+code --list-extensions | xargs -n 1 echo code --install-extension
+```
+
 ## monorepo
 
 一个 git 仓库, 多个 pkg 以软链接的方式实现相互引用
