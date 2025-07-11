@@ -677,9 +677,9 @@ export default function resolveAlias(aliasConf, jsPath, jsContent) {
 ### dist 体积优化
 
 1. dist 体积可视化 `pnpm install rollup-plugin-visualizer -D`
-2. 分包, tree-shaking, gzip 压缩, 动态导入, CDN 加速
+2. 代码分包, tree-shaking, gzip 压缩, 动态导入, CDN 加速
 
-分包: 将不经常更新的文件单独打包
+代码分包: 将不经常更新的文件单独打包
 
 ```js
 // 例: 将 node_modules 中的依赖单独打包

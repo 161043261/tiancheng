@@ -1457,7 +1457,39 @@ export default defineConfig({
 });
 ```
 
-## Vue 编译宏
+## Vue 函数式编程
+
+```vue
+<script setup lang="ts">
+import { h } from "vue";
+
+interface IProps {
+  type: "primary" | "danger";
+}
+
+// Vue 函数式编程
+const Btn = (props: IProps, ctx: any /** { attrs, emit, slots } */) => {
+  console.log("[btn] ctx", ctx);
+  return h(
+    "button", // type
+    {
+      style: { color: props.type === "primary" ? "lightblue" : "lightcoral" },
+      onClick: () => {
+        console.log(ctx);
+      },
+    }, // props
+    ctx.slots.default(), // children
+  );
+};
+</script>
+
+<template>
+  <Btn type="primary">primary</Btn>
+  <Btn type="danger">danger</Btn>
+</template>
+```
+
+## Vue 宏函数
 
 - defineProps
 - defineEmits
@@ -1536,11 +1568,11 @@ defineSlots<{
 ::: code-group
 
 ```bash [.env.development]
-VITE_CUSTOM_ENV = '[custom_env] development'
+VITE_CUSTOM_ENV = '[VITE_CUSTOM_ENV] development'
 ```
 
 ```bash [.env.production]
-VITE_CUSTOM_ENV = '[custom_env] production'
+VITE_CUSTOM_ENV = '[VITE_CUSTOM_ENV] production'
 ```
 
 ```json [package.json]
@@ -1561,7 +1593,7 @@ console.log("import.meta.env:", import.meta.env);
 //   MODE: 'development',
 //   PROD: false,
 //   SSR: false
-//   VITE_CUSTOM_ENV: '[custom_env] development'
+//   VITE_CUSTOM_ENV: '[VITE_CUSTOM_ENV] development'
 // }
 ```
 
@@ -1573,7 +1605,7 @@ console.log("import.meta.env:", import.meta.env);
 //   MODE: 'production',
 //   PROD: true,
 //   SSR: false
-//   VITE_CUSTOM_ENV: '[custom_env] production'
+//   VITE_CUSTOM_ENV: '[VITE_CUSTOM_ENV] production'
 // }
 ```
 

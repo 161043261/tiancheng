@@ -2,30 +2,30 @@
 
 ## Bottom
 
-- b/algorithm [need review]
-- b/bundle [need review]
-- b/css [need review]
-- b/css2 [need review]
+- b/algorithm [Need review]
+- b/bundle [Need review]
+- b/css [Need review]
+- b/css2 [Need review]
 - b/git
-- b/cpp_go
-- b/js_ts [need review]
-- b/linux [need review]
-- b/mq
+- b/cpp_go [TODO]
+- b/js_ts [Need review]
+- b/linux [Need review]
+- b/mq [TODO]
 - b/mysql [reviewed]
-- b/network [need review]
-- b/network2 [need review]
-- b/redis
+- b/network [Need review]
+- b/network2 [Need review]
+- b/redis [TODO]
 - b/elasticsearch [TODO]
 - b/clickhouse [TODO]
 
 ## Top
 
 - t/d2vue [reviewed]
-- t/frontend [need review]
-- t/react_router [need review]
-- t/react_state [need review]
-- t/react [need review]
-- t/trace [need review]
-- t/vue_router [need review]
-- t/vue_state [need review]
+- t/frontend [Need review]
+- t/react_router [Need review]
+- t/react_state [Need review]
+- t/react [Need review]
+- t/trace [Need review]
+- t/vue_router [Need review]
+- t/vue_state [Need review]
 - t/vue [reviewed]
