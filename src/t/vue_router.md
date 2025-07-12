@@ -143,7 +143,7 @@ console.log(history.length);
 console.log(location.href); // http://localhost:5173/t/vue_router
 ```
 
-## 命名路由
+## 具名路由
 
 路由组件可以有一个唯一的名字
 
@@ -189,7 +189,7 @@ export default router;
 
 :::
 
-## 编程式路由
+## 编程式导航
 
 - `router.push` 向 history 栈顶添加一条记录
 - `router.replace` 替换 history 栈顶的记录
@@ -415,35 +415,57 @@ const routes: Array<RouteRecordRaw> = [
 
 ================================================== 07/12
 
-## 命名视图
+## 具名 `<RouterView />`, alias 别名, redirect 重定向
 
-RouterView 的 name 属性
+`<RouterView />` 的 name 属性
 
 ::: code-group
 
-```ts{6,7} [@/router/index.ts]
+```ts [@/router/index.ts]
 const routes: Array<RouteRecordRaw> = [
-  // 命名视图
   {
-    path: "/container",
-    component: () => import("@/views/ViewsContainer.vue"),
-    redirect: '/container/ab', // 路由重定向
-    alias: '/views/container', // 路由别名
+    path: "/views",
+
+    // 路由别名
+    // alias: '/',
+    alias: ["/", "/home"],
+
+    // 路由重定向
+    // redirect: '/views/ab',
+
+    // redirect: {
+    //   path: '/views/ab',
+    //   // name: 'ab',
+    // },
+
+    redirect: (to) => {
+      console.log("[redirect] to:", to);
+      return {
+        // path: '/views/ab',
+        name: "ab",
+        query: to.query, // 默认
+      };
+    },
+
     children: [
       {
-        path: "ab",
-        name: 'AB',
+        path: "/views/ab", // path: 'ab'
+        name: "ab",
         components: {
-          default: () => import("@/views/NameA.vue"), // 视图名 default
-          nameB: () => import("@/views/NameB.vue"), // 视图名 nameB
+          // name="default"
+          default: () => import("@/views/AView.vue"),
+          // name="pageB"
+          pageB: () => import("@/views/BView.vue"),
         },
       },
       {
-        path: "bc",
-        name: 'BC',
+        path: "bc", // path: '/views/bc'
+        name: "bc",
         components: {
-          nameB: () => import("@/views/NameB.vue"), // 视图名 nameB
-          nameC: () => import("@/views/NameC.vue"), // 视图名 nameC
+          // name="pageB"
+          pageB: () => import("@/views/BView.vue"),
+          // name="pageC"
+          pageC: () => import("@/views/CView.vue"),
         },
       },
     ],
@@ -451,109 +473,81 @@ const routes: Array<RouteRecordRaw> = [
 ];
 ```
 
-```vue [ViewsContainer.vue]
+```vue [@/App.vue]
+<script setup lang="ts">
+import { RouterView } from "vue-router";
+</script>
+
 <template>
-  <div style="background: azure">
-    <div>name: default (视图 @/views/NameA 的容器)</div>
+  <div>
+    <RouterLink to="/views/ab">/views/ab</RouterLink>
+    <RouterLink :to="{ name: 'bc' }">/views/bc</RouterLink>
+
+    <div>@/views/AView.vue 的容器</div>
     <!-- name="default" -->
-    <RouterView></RouterView>
-    <div>name: nameB (视图 @/views/NameB 的容器)</div>
-    <RouterView name="nameB"></RouterView>
-    <div>name: nameC (视图 @/views/NameC 的容器)</div>
-    <RouterView name="nameC"></RouterView>
-    <RouterLink to="/container/ab">AB</RouterLink>
-    <RouterLink to="/container/bc">BC</RouterLink>
+    <RouterView />
+
+    <div>@/views/BView.vue 的容器</div>
+    <!-- name="pageB" -->
+    <RouterView name="pageB" />
+
+    <div>@/views/CView.vue 的容器</div>
+    <!-- name="pageC" -->
+    <RouterView name="pageC" />
   </div>
 </template>
 ```
 
 :::
 
-## 路由重定向, 路由别名
-
-- 路由重定向 redirect
-- 路由别名 alias
-
-```ts
-const routes: Array<RouteRecordRaw> = [
-  {
-    path: "/container",
-    component: () => import("@/views/ViewsContainer.vue"),
-    // redirect: '/container/ab', // 路由重定向
-
-    // redirect: {
-    //   path: '/container/ab',
-    //   // name: 'AB',
-    // },
-
-    // http://localhost:5173/container?k=v
-    // 重定向到 http://localhost:5173/container/ab?k=v
-    redirect: (to) => {
-      console.log("to:", to);
-      // return '/container/ab'
-
-      return {
-        // path: '/container/ab',
-        name: "AB",
-        query: to.query, // 默认
-      };
-    },
-
-    // alias: '/views/container', // 路由别名
-    alias: ["/ViewsContainer", "/views/container"],
-    // http://localhost:5173/ViewsContainer?k=v // 不区分大小写
-    // http://localhost:5173/views/container?k=v
-    // 都重定向到 http://localhost:5173/container/ab?k=v
-  },
-];
-```
-
 ## 路由守卫
 
-需要在 main.ts 中副作用导入路由守卫文件
+- 前置守卫函数在 redirect 重定向后, 路由跳转前执行
+- 后置守卫函数在路由跳转后执行
 
 ### 前置守卫
 
-`router.beforeEach((to, from, next) => void)`;
+`router.beforeEach((to, from, next) => void)`
 
-```ts
-// main.ts
-// 路由前置守卫, 前置守卫函数在 redirect 重定向后, 路由跳转前执行
+::: code-group
+
+```ts [写法 1]
+const whitelist: string[] = ["/register", "/login"];
+
 router.beforeEach(
   (
-    to /** (@/router/index.ts
-    createRouter
-    RouterOptions.routes 重定向后的) 目的路由 */,
-    from /** 源路由 */,
-    next,
+    to, // (重定向后的) 目的路由
+    from, // 源路由
+    next, // 放行函数
   ) => {
-    console.log("from:", from);
-    console.log("to:", to);
+    console.log("[beforeGuard] from:", from);
+    console.log("[beforeGuard] to:", to);
     if (whitelist.includes(to.path) || sessionStorage.getItem("token")) {
       next(); // 放行
     } else {
       next("/login"); // 重定向到登录
     }
-  } /** guard 前置守卫函数 */,
+  },
 );
 ```
 
-```ts
+```ts [写法 2]
+const whitelist: string[] = ["/register", "/login"];
+
 router.beforeEach((to) => {
-  if (whitelist.includes(to.path) || sessionStorage.getItem("token")) {
-    // vue-router@4 新版本
+  if (!whitelist.includes(to.path) && !sessionStorage.getItem("token")) {
     // 没有返回值: 放行
     // 有返回值: 重定向
-    return {
-      name: "Login",
-    };
+    return { name: "login" };
   }
 });
 ```
 
+:::
+
 ### 后置守卫
 
-`router.afterEach((to, from) => void)`;
+`router.afterEach((to, from) => void)`
 
 ::: code-group
 

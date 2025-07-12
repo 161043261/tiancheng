@@ -72,6 +72,14 @@ init: ## Initial commit
 	git commit -m "Initial commit"
 	git push -f origin main --set-upstream
 
+.PHONY: zip
+zip: ## Zip logs
+	tar -czvf - 2025 | openssl enc -aes-256-cbc -pbkdf2 -out 2025.tar.gz.enc
+
+.PHONY: unzip
+unzip: ## Unzip logs
+	openssl enc -d -aes-256-cbc -pbkdf2 -in 2025.tar.gz.enc | tar -xzvf -
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
