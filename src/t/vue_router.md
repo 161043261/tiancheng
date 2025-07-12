@@ -46,8 +46,8 @@ import { RouterView } from "vue-router";
 <template>
   <div>
     <!-- <RouterLink /> 链接到 to 属性指定的路由 -->
-    <RouterLink to="/">Login</RouterLink>
-    <RouterLink to="/register">Register</RouterLink>
+    <RouterLink to="/">login</RouterLink>
+    <RouterLink to="/register">register</RouterLink>
     <!-- <RouterView /> 路由组件的容器 -->
     <RouterView />
   </div>
@@ -143,9 +143,13 @@ console.log(history.length);
 console.log(location.href); // http://localhost:5173/t/vue_router
 ```
 
+## 命名路由
+
 路由组件可以有一个唯一的名字
 
-```ts
+::: code-group
+
+```ts{11,16} [@/router/index.ts]
 import {
   createRouter,
   createWebHistory,
@@ -174,16 +178,16 @@ const router = createRouter({
 export default router;
 ```
 
-## 命名路由
-
-```vue
+```vue [@/App.vue]
 <template>
   <!-- 默认使用 history.pushState() -->
-  <RouterLink :to="{ name: 'login' }">Login</RouterLink>
+  <RouterLink :to="{ name: 'login' }">login</RouterLink>
   <!-- 使用 history.replaceState() -->
-  <RouterLink replace :to="{ name: 'register' }">Register</RouterLink>
+  <RouterLink replace :to="{ name: 'register' }">register</RouterLink>
 </template>
 ```
+
+:::
 
 ## 编程式路由
 
@@ -219,189 +223,197 @@ const routeJump2next = (delta?: number) => {
 };
 ```
 
-================================================== 07/11
-
 ## 路由传参
 
-1. 使用 Pinia 缓存
-2. query: URL 查询参数 (URL query parameters)
-3. state
+1. query: url 查询参数
+2. params: url 路径参数
+3. window.history.state
 4. 路由前置守卫
-5. params: URL 路径参数 (URL path parameters)
 
 ::: code-group
 
 ```ts [@/router/index.ts]
 const routes: Array<RouteRecordRaw> = [
   {
+    path: "/",
+    name: "login",
+    component: () => import("@/views/LoginView.vue"),
+  },
+  {
     path: "/register",
-    name: "Register",
+    name: "register",
     component: () => import("@/views/RegisterView.vue"),
   },
   {
-    path: "/register/:id/:name?/:price?", // id: URL 路径参数
-    // :id 必传参数, :name? :price? 可选参数
-    name: "RegisterWithId",
+    path: "/register/:id/:name?/:age?", // url 路径参数
+    // :id 必传参数
+    // :name? :age? 可选参数
+    name: "registerWithId",
     component: () => import("@/views/RegisterView.vue"),
   },
 ];
 ```
 
-```ts [LoginView]
-type Item = {
-  name: string;
-  price: number;
+```ts [@/views/LoginView.vue]
+import { useRouter } from "vue-router";
+
+type User = {
   id: number;
+  name: string;
+  age: number;
 };
 
 const router = useRouter();
-
-// 路由传参
-// 1. 使用 Pinia 缓存
-// 2. query: URL 查询参数 (URL query parameters)
-// 3. state
-// 4. 路由前置守卫
-function routeJumpByQuery(item: Item) {
+const routeJumpByQuery = (user: User) => {
   router.push({
-    path: "/register",
-    // name: 'Register', // 不需要指定路由组件的名字
-    // query: URL 查询参数 http://localhost:5173/register?name=item1&price=1000&id=1
-    query: item,
-    state: item, // window.history.state = item
+    path: "/register", // name: 'register',
+    // query: url 查询参数
+    // http://localhost:5173/register?id=1&name=whoami&age=23
+    query: user,
+    state: user,
   });
-}
+};
 
-// 5. params: URL 路径参数 (URL path parameters)
-function routeJumpByParams(item: Item) {
-  router.push({
-    name: "RegisterWithId", // 必须指定路由组件的名字
-    // params: URL 路径参数 http://localhost:5173/register/1
+const routeJumpByParams = (user: User) => {
+  router.replace({
+    name: "registerWithId",
+    // params: url 路径参数
+    // http://localhost:5173/register/1
     params: {
-      id: item.id,
+      id: user.id,
     },
   });
-}
+};
 ```
 
-```vue [RegisterView]
-<script setup lang="ts">
-import { isProxy } from "vue";
+```ts [@/views/RegisterView.vue]
+import { isProxy, isReactive, isRef } from "vue";
 import { useRoute } from "vue-router";
-import { data } from "../assets/list.json";
 
-const { name, price, id } = history.state;
-console.log(`name: ${name}, price: ${price}, id: ${id}`);
+const route = useRoute(); // useRoute() 获取路由对象
+console.log(isRef(route), isReactive(route), isProxy(route)); // false true true
 
-const route = useRoute(); // useRoute() 获取路由对象, 等价于 template 中使用 $route
-console.log(isProxy(route)); // true
-</script>
-
-<template>
-  <div class="register">Register</div>
-  <div>
-    route.query.name:
-    {{
-      route.query.name ??
-      data.find((val) => val.id === Number(route.params.id))?.name
-    }}
-  </div>
-  <div>
-    route.query.price:
-    {{
-      route.query.price ??
-      data.find((val) => val.id === Number(route.params.id))?.price
-    }}
-  </div>
-  <!-- query: URL 查询参数 (URL query parameters)
-       params: URL 路径参数 (URL path parameters) -->
-  <div>route.query.id: {{ route.query.id ?? route.params.id }}</div>
-</template>
+console.log("route.query:", route.query);
+console.log("route.params:", route.params);
 ```
 
 :::
 
 ### 布尔模式
 
-props 是一个布尔值时, `props: true`, 将 route.params 设置为路由组件的 props
+props 设置为 true 时, `route.params` url 路径参数将被设置为路由组件的 props
 
-对于有命名视图的路由: `props: { default: true, nameB: true, nameC: false }`
+```ts{6}
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/register/:id/:name?/:age?", // url 路径参数
+    name: "registerWithId",
+    component: () => import("@/views/RegisterView.vue"),
+    props: true,
+  },
+];
+```
 
 ### 对象模式
 
-props 是一个对象时, `props: { foo: 1 }`, 将该对象 `{ foo: 1 }` 设置为路由组件的 props
+props 是一个对象时, 将该对象设置为路由组件的 props
+
+```ts{6}
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/register",
+    name: "register",
+    component: () => import("@/views/RegisterView.vue"),
+    props: { foo: "bar" }
+  },
+];
+```
 
 ### 函数模式
 
-props 是一个函数时, `props: (route) => route.query`, 将该函数的返回值设置为路由组件的 props
+props 是一个函数时, 将该函数的返回值设置为路由组件的 props
 
-## RouterView 插槽
+```ts{6}
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: "/register",
+    name: "register",
+    component: () => import("@/views/RegisterView.vue"),
+    props: (route: RouteLocationNormalizedGeneric) => ({ ...route.query }),
+  },
+];
+```
+
+## `<RouterView />` 插槽
 
 ```vue
 <template>
-  <!-- <RouterView></RouterView> 等价于 -->
-  <!-- RouterView 插槽 -->
-  <RouterView v-slot="{ Component }">
-    <component :is="Component"></component>
+  <!-- <RouterView /> 等价于 -->
+  <RouterView v-slot="{ route, Component }">
+    <component :is="Component" />
   </RouterView>
 </template>
+```
 
-<!-- @/App.vue -->
-<!--<template>
-      <RouteChildComponent>
-        <template v-slot="{ route, Component }">
-          <component :is="Component"></component>
-        </template>
-      </RouteChildComponent>
-    </template> -->
+使用 `<Transition />` 过渡组件和 `<KeepAlive />` 缓存组件
 
-<!-- 路由子组件 -->
-<!--<template>
-      <slot></slot>
-    </template> -->
+```vue
+<template>
+  <RouterView v-slot="{ route, Component }">
+    <Transition>
+      <KeepAlive>
+        <component :is="Component" />
+      </KeepAlive>
+    </Transition>
+  </RouterView>
+</template>
 ```
 
 ## 嵌套路由
 
 ::: code-group
 
-```ts{13,14} [@/router/index.ts]
+```ts{17,18} [@/router/index.ts]
 const routes: Array<RouteRecordRaw> = [
   {
-    path: "/root",
-    component: () => import("../views/RootView.vue"),
+    path: '/',
+    redirect: '/home', // 路由重定向
+  },
+  {
+    path: '/home',
+    component: () => import('@/views/HomeView.vue'),
     children: [
       {
-        path: "",
-        name: "RootLogin",
-        component: () => import("@/views/LoginView.vue"),
+        path: '',
+        name: 'login',
+        component: () => import('@/views/LoginView.vue'),
       },
       {
-        path: "register",
-        // path: "register", 实际路由 "/root/register"
+        path: 'register',
+        // path: "register", 实际路由 "/home/register"
         // path: "/register", 实际路由 "/register"
-        name: "RootRegister",
-        component: () => import("@/views/RegisterView.vue"),
+        name: 'register',
+        component: () => import('@/views/RegisterView.vue'),
       },
     ],
   },
-];
+]
 ```
 
-```vue [RootView.vue]
+```vue [HomeView.vue]
 <template>
-  <div class="root">
-    <h1>Root 父路由组件</h1>
-    <RouterView></RouterView>
-    <!-- 必须加上 /root 父路由前缀 -->
-    <RouterLink style="margin-left: 10px" to="/root">RootLogin</RouterLink>
-    <RouterLink style="margin-left: 10px" to="/root/register"
-      >RootRegister</RouterLink
-    >
+  <div>
+    <!-- 必须加上 /home 前缀 -->
+    <RouterLink to="/home">login</RouterLink>
+    <RouterLink to="/home/register">register</RouterLink>
+    <RouterView />
   </div>
 </template>
 ```
 
 :::
+
+================================================== 07/12
 
 ## 命名视图
 
