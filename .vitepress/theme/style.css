@@ -1,0 +1,41 @@
+:root {
+  --vp-font-family-base: "Iosevka", "Maple Mono", "Cascadia Code", "Menlo",
+    "DejaVu Sans Mono", "LXGW WenKai", "PingFang SC", "Microsoft YaHei",
+    monospace !important;
+  --vp-font-family-mono: "Iosevka", "Maple Mono", "Cascadia Code", "Menlo",
+    "DejaVu Sans Mono", "LXGW WenKai", "PingFang SC", "Microsoft YaHei",
+    monospace !important;
+  --vp-c-brand-1: hsla(160, 100%, 37%, 1);
+  --vp-c-brand-2: hsla(160, 100%, 37%, 0.5);
+  --vp-c-brand-3: hsla(160, 100%, 37%, 1);
+}
+
+.VPHero {
+  .text {
+    display: inline-block;
+    animation: spin 10s linear infinite;
+  }
+
+  .image-container {
+    animation: spin 10s linear infinite;
+
+    .VPImage {
+      border-radius: 50%;
+      transition: opacity;
+      transition-duration: 10s;
+    }
+
+    .VPImage:hover {
+      opacity: 0;
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
