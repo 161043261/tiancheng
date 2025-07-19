@@ -2,17 +2,17 @@
 
 ## Bottom
 
-- b/algorithm [reviewING]
+- b/algorithm [ING]
 - b/bundle [Need review]
-- b/css [Need review]
-- b/css2 [Need review]
+- b/css [Need merge]
+- b/css2 [Need merge]
 - b/git [reviewed]
 - b/cpp [TODO]
 - b/js_ts [TODO]
 - b/linux [reviewed]
 - b/mysql [reviewed]
-- b/network [Need review]
-- b/network2 [Need review]
+- b/network [Need merge]
+- b/network2 [Need merge]
 - b/redis [reviewed]
 
 ## Top
