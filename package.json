@@ -1,0 +1,38 @@
+{
+  "author": "",
+  "description": "",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.4.2",
+    "vitepress": "^1.5.0"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "name": "tiancheng",
+  "scripts": {
+    "build": "rm -rf ./vitepress/dist && vitepress build",
+    "dev": "vitepress dev",
+    "preview": "vitepress preview",
+    "format": "prettier --write ./src .vitepress/theme",
+    "prepare": "husky"
+  },
+  "type": "module",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
+  },
+  "lint-staged": {
+    "src/**/*.{vue,js,jsx,ts,tsx}": [
+      "pnpm format",
+      "pnpm lint"
+    ],
+    "src/**/*.{json,css,less,scss,md,mdx}": [
+      "pnpm format"
+    ]
+  }
+}
